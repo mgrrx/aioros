@@ -81,7 +81,9 @@ class NodeHandle:
         tcpros_port: int = 0
     ) -> None:
         local_address = get_local_address()
-        self._master_api_client = MasterApiClient(self, get_master_uri())
+        self._master_api_client = MasterApiClient(
+            self.node_name,
+            get_master_uri())
         self._service_manager = ServiceManager(self._master_api_client)
         self._topic_manager = TopicManager(self._master_api_client)
         self._tcpros_server, self._tcpros_uri = await start_tcpros_server(
@@ -96,6 +98,8 @@ class NodeHandle:
             self._tcpros_uri,
             local_address,
             xmlrpc_port)
+        self._master_api_client.tcpros_uri = self._tcpros_uri
+        self._master_api_client.xmlrpc_uri = self._xmlrpc_uri
 
     async def close(self) -> None:
         if self._service_manager:
@@ -120,19 +124,25 @@ class NodeHandle:
             self._api_server = None
 
     async def delete_param(self, key: str) -> None:
-        return await self._master_api_client.delete_param(key)
+        return await self._master_api_client.delete_param(
+            self.resolve_name(key))
 
     async def set_param(self, key: str, value: Any) -> None:
-        return await self._master_api_client.set_param(key, value)
+        return await self._master_api_client.set_param(
+            self.resolve_name(key),
+            value)
 
     async def get_param(self, key: str):
-        return await self._master_api_client.get_param(key)
+        return await self._master_api_client.get_param(
+            self.resolve_name(key))
 
     async def has_param(self, key: str) -> bool:
-        return await self._master_api_client.has_param(key)
+        return await self._master_api_client.has_param(
+            self.resolve_name(key))
 
     async def search_param(self, key: str):
-        return await self._master_api_client.search_param(key)
+        return await self._master_api_client.search_param(
+            self.resolve_name(key))
 
     async def get_param_names(self) -> List[str]:
         return await self._master_api_client.get_param_names()

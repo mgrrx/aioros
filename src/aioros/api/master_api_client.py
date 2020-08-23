@@ -2,6 +2,7 @@ from asyncio import Lock
 from functools import partial
 from sys import maxsize as _MAX_SIZE
 from typing import Any
+from typing import Optional
 from typing import List
 from typing import Tuple
 
@@ -25,15 +26,20 @@ class MasterApiClient:
 
     def __init__(
         self,
-        node_handle,
-        master_uri: str
+        node_name: str,
+        master_uri: str,
+        *,
+        xmlrpc_uri: Optional[str] = None,
+        tcpros_uri: Optional[str] = None
     ) -> None:
-        self._node_handle = node_handle
-        self._proxy = ServerProxy(
+        self._node_name: str = node_name
+        self.xmlrpc_uri: Optional[str] = xmlrpc_uri
+        self.tcpros_uri: Optional[str] = tcpros_uri
+        self._proxy: ServerProxy = ServerProxy(
             master_uri,
             client=ClientSession(
                 connector=TCPConnector(keepalive_timeout=_MAX_SIZE)))
-        self._lock = Lock()
+        self._lock: Lock = Lock()
 
     @property
     def uri(self) -> str:
@@ -45,44 +51,32 @@ class MasterApiClient:
     @validate_with_keyerror(return_value=False)
     async def delete_param(self, key: str) -> None:
         async with self._lock:
-            return await self._proxy.deleteParam(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(key))
+            return await self._proxy.deleteParam(self._node_name, key)
 
     @validate_with_keyerror(return_value=False)
     async def set_param(self, key: str, value: Any) -> None:
         async with self._lock:
-            return await self._proxy.setParam(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(key),
-                value)
+            return await self._proxy.setParam(self._node_name, key, value)
 
     @validate_with_keyerror()
     async def get_param(self, key: str):
         async with self._lock:
-            return await self._proxy.getParam(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(key))
+            return await self._proxy.getParam(self._node_name, key)
 
     @validate_with_keyerror()
     async def has_param(self, key: str) -> bool:
         async with self._lock:
-            return await self._proxy.hasParam(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(key))
+            return await self._proxy.hasParam(self._node_name, key)
 
     @validate_with_keyerror()
     async def search_param(self, key: str):
         async with self._lock:
-            return await self._proxy.searchParam(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(key))
+            return await self._proxy.searchParam(self._node_name, key)
 
     @validate()
     async def get_param_names(self) -> List[str]:
         async with self._lock:
-            return await self._proxy.getParamNames(
-                self._node_handle.node_name)
+            return await self._proxy.getParamNames(self._node_name)
 
     async def subscribe_param(self, key):
         raise NotImplementedError()
@@ -93,16 +87,12 @@ class MasterApiClient:
     @validate()
     async def lookup_node(self, node_name: str) -> str:
         async with self._lock:
-            return await self._proxy.lookupNode(
-                self._node_handle.node_name,
-                node_name)
+            return await self._proxy.lookupNode(self._node_name, node_name)
 
     @validate()
     async def lookup_service(self, service: str) -> str:
         async with self._lock:
-            return await self._proxy.lookupService(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(service))
+            return await self._proxy.lookupService(self._node_name, service)
 
     @validate()
     async def get_published_topics(
@@ -111,25 +101,25 @@ class MasterApiClient:
     ) -> List[Tuple[str, str]]:
         async with self._lock:
             return await self._proxy.getPublishedTopics(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(subgraph))
+                self._node_name,
+                subgraph)
 
     @validate(return_value=False)
     async def register_service(self, service: str) -> None:
         async with self._lock:
             return await self._proxy.registerService(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(service),
-                self._node_handle.tcpros_uri,
-                self._node_handle.xmlrpc_uri)
+                self._node_name,
+                service,
+                self.tcpros_uri,
+                self.xmlrpc_uri)
 
     @validate()
     async def unregister_service(self, service: str) -> int:
         async with self._lock:
             return await self._proxy.unregisterService(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(service),
-                self._node_handle.tcpros_uri)
+                self._node_name,
+                service,
+                self.tcpros_uri)
 
     @validate()
     async def register_subscriber(
@@ -139,10 +129,10 @@ class MasterApiClient:
     ) -> List[str]:
         async with self._lock:
             return await self._proxy.registerSubscriber(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(topic),
+                self._node_name,
+                topic,
                 topic_type,
-                self._node_handle.xmlrpc_uri)
+                self.xmlrpc_uri)
 
     @validate()
     async def unregister_subscriber(
@@ -152,9 +142,9 @@ class MasterApiClient:
     ) -> int:
         async with self._lock:
             return await self._proxy.unregisterSubscriber(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(topic),
-                self._node_handle.xmlrpc_uri)
+                self._node_name,
+                topic,
+                self.xmlrpc_uri)
 
     @validate()
     async def register_publisher(
@@ -164,10 +154,10 @@ class MasterApiClient:
     ) -> List[str]:
         async with self._lock:
             return await self._proxy.registerPublisher(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(topic),
+                self._node_name,
+                topic,
                 topic_type,
-                self._node_handle.xmlrpc_uri)
+                self.xmlrpc_uri)
 
     @validate()
     async def unregister_publisher(
@@ -177,6 +167,6 @@ class MasterApiClient:
     ) -> int:
         async with self._lock:
             return await self._proxy.unregisterPublisher(
-                self._node_handle.node_name,
-                self._node_handle.resolve_name(topic),
-                self._node_handle.xmlrpc_uri)
+                self._node_name,
+                topic,
+                self.xmlrpc_uri)
