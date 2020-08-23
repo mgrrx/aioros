@@ -54,7 +54,7 @@ class Client:
         return self._srv_name
 
     @property
-    def type(self):
+    def type(self) -> SrvType:
         return self._srv_type
 
     @property
