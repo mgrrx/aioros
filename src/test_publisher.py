@@ -8,10 +8,26 @@ from std_msgs.msg import String
 loop = asyncio.get_event_loop()
 
 
+def on_peer_connect(node_name):
+    print("node", node_name, "connected")
+    return String(data=f'Hi {node_name}')
+
+
+def on_peer_disconnect(node_name):
+    print("node", node_name, "disconnected")
+
+
 async def main(n):
     await n.init()
-    pub = await n.create_publisher('blubb', String)
-    pub2 = await n.create_publisher('blubb', String, latch=True)
+    pub = await n.create_publisher(
+        'blubb',
+        String,
+        on_peer_connect=on_peer_connect,
+        on_peer_disconnect=on_peer_disconnect)
+    pub2 = await n.create_publisher(
+        'blubb',
+        String,
+        latch=True)
     await pub2.publish(String(data="latch"))
     while True:
         print("pub")

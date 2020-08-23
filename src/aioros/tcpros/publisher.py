@@ -1,3 +1,7 @@
+from typing import Callable
+from typing import Optional
+
+
 class Publisher:
 
     def __init__(
@@ -5,11 +9,15 @@ class Publisher:
         manager,
         topic,
         *,
+        on_peer_connect: Optional[Callable] = None,
+        on_peer_disconnect: Optional[Callable] = None,
         latch: bool = False
     ) -> None:
         self._manager = manager
         self._topic = topic
-        self._latch = latch
+        self.on_peer_connect = on_peer_connect
+        self.on_peer_disconnect = on_peer_disconnect
+        self._latch: bool = latch
 
     @property
     def latch(self):

@@ -88,7 +88,12 @@ class TopicManager:
                 topic.name,
                 topic.type_name)
             self._topics[topic_name] = topic
-        publisher = Publisher(self, topic, latch=latch)
+        publisher = Publisher(
+            self,
+            topic,
+            on_peer_connect=on_peer_connect,
+            on_peer_disconnect=on_peer_disconnect,
+            latch=latch)
         topic.register_publisher(publisher)
         return publisher
 

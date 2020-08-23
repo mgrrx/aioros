@@ -91,7 +91,6 @@ class Topic:
     ) -> bool:
         self._internal_subscriptions.pop(subscription)
         if not self.has_subscriptions:
-            print("Disconnecting from all publishers")
             for event in self._connected_publishers.values():
                 event.set()
         return self.has_subscriptions
@@ -104,12 +103,23 @@ class Topic:
             if publisher.latch:
                 self._latched_msgs[publisher] = serialized_msg
 
-    async def connect_subscriber(self, queue: Queue) -> None:
+    async def connect_subscriber(self, node_name: str, queue: Queue) -> None:
         for publisher in self._internal_publishers:
+            if publisher.on_peer_connect:
+                msg = publisher.on_peer_connect(node_name)
+                if msg:
+                    with self._serializer.serialize(msg) as serialized_msg:
+                        await queue.put(serialized_msg)
+
             serialized_msg = self._latched_msgs.get(publisher)
             if serialized_msg is not None:
                 await queue.put(serialized_msg)
         self._connected_subscribers.add(queue)
+
+    def disconnect_subscriber(self, node_name: str) -> None:
+        for publisher in self._internal_publishers:
+            if publisher.on_peer_disconnect:
+                publisher.on_peer_disconnect(node_name)
 
     def connect_to_publishers(self, publishers: List[str]) -> None:
         loop = get_event_loop()

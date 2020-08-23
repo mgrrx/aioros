@@ -146,18 +146,23 @@ async def handle_topic(
     if not topic:
         raise Error(f'Topic {topic_name} is not provided by this node')
 
-    check_md5sum(header, topic.md5sum)
+    try:
+        check_md5sum(header, topic.md5sum)
 
-    writer.write(encode_header(topic.get_publisher_header()))
-    await writer.drain()
-
-    queue = Queue()
-    await topic.connect_subscriber(queue)
-
-    while True:
-        writer.write(await queue.get())
+        writer.write(encode_header(topic.get_publisher_header()))
         await writer.drain()
-        queue.task_done()
+
+        queue = Queue()
+        await topic.connect_subscriber(header['callerid'], queue)
+
+        while True:
+            writer.write(await queue.get())
+            await writer.drain()
+            queue.task_done()
+    except Exception as err:
+        topic.disconnect_subscriber(header['callerid'])
+        raise err
+    topic.disconnect_subscriber(header['callerid'])
 
 
 async def start_server(
