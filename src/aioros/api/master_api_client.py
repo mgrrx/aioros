@@ -78,11 +78,21 @@ class MasterApiClient:
         async with self._lock:
             return await self._proxy.getParamNames(self._node_name)
 
+    @validate()
     async def subscribe_param(self, key):
-        raise NotImplementedError()
+        async with self._lock:
+            return await self._proxy.subscribeParam(
+                self._node_name,
+                self.xmlrpc_uri,
+                key)
 
+    @validate()
     async def unsubscribe_param(self, key):
-        raise NotImplementedError()
+        async with self._lock:
+            return await self._proxy.unsubscribeParam(
+                self._node_name,
+                self.xmlrpc_uri,
+                key)
 
     @validate()
     async def lookup_node(self, node_name: str) -> str:

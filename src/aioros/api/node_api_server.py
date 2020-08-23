@@ -13,6 +13,7 @@ from aiohttp_xmlrpc.handler import XMLRPCView
 
 from ..tcpros.utils import split_tcpros_uri
 from ..topic_manager import TopicManager
+from ..param_manager import ParamManager
 
 
 TopicInfo = Tuple[str, str]
@@ -96,7 +97,10 @@ class NodeAPI(XMLRPCView):
         parameter_key: str,
         parameter_value: Any
     ) -> IntResult:
-        return 1, '', 0
+        success = self.request.app['param_manager'].update(
+            parameter_key,
+            parameter_value)
+        return 1 if success else -1, '', 0
 
     def rpc_publisherUpdate(
         self,
@@ -125,6 +129,7 @@ class NodeAPI(XMLRPCView):
 
 async def start_server(
     topic_manager: TopicManager,
+    param_manager: ParamManager,
     node_name: str,
     master_uri: str,
     tcpros_uri: str,
@@ -145,5 +150,6 @@ async def start_server(
     app['xmlrpc_uri'] = xmlrpc_uri
     app['tcpros_uri'] = tcpros_uri
     app['topic_manager'] = topic_manager
+    app['param_manager'] = param_manager
 
     return runner, xmlrpc_uri

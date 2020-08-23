@@ -8,6 +8,7 @@ from typing import Any
 from typing import Callable
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from aiohttp.web import AppRunner
 
@@ -16,6 +17,8 @@ from .api.node_api_server import start_server as start_node_api_server
 from .graph_resource import GraphResource
 from .graph_resource import get_local_address
 from .graph_resource import get_master_uri
+from .param_manager import Callback
+from .param_manager import ParamManager
 from .service_manager import ServiceManager
 from .service_manager import SrvType
 from .service_manager import SrvTypeRequest
@@ -38,6 +41,7 @@ class NodeHandle:
         self._master_api_client: Optional[MasterApiClient] = None
         self._service_manager: Optional[ServiceManager] = None
         self._topic_manager: Optional[TopicManager] = None
+        self._param_manager: Optional[ParamManager] = None
         self._tcpros_server: Optional[Server] = None
         self._api_server: Optional[AppRunner] = None
 
@@ -86,6 +90,7 @@ class NodeHandle:
             get_master_uri())
         self._service_manager = ServiceManager(self._master_api_client)
         self._topic_manager = TopicManager(self._master_api_client)
+        self._param_manager = ParamManager(self._master_api_client)
         self._tcpros_server, self._tcpros_uri = await start_tcpros_server(
             self._service_manager,
             self._topic_manager,
@@ -93,6 +98,7 @@ class NodeHandle:
             tcpros_port)
         self._api_server, self._xmlrpc_uri = await start_node_api_server(
             self._topic_manager,
+            self._param_manager,
             self.node_name,
             self._master_api_client.uri,
             self._tcpros_uri,
@@ -109,6 +115,9 @@ class NodeHandle:
         if self._topic_manager:
             await self._topic_manager.close()
             self._topic_manager = None
+
+        if self._param_manager:
+            self._param_manager = None
 
         if self._tcpros_server:
             self._tcpros_server.close()
@@ -132,7 +141,7 @@ class NodeHandle:
             self.resolve_name(key),
             value)
 
-    async def get_param(self, key: str):
+    async def get_param(self, key: str) -> Any:
         return await self._master_api_client.get_param(
             self.resolve_name(key))
 
@@ -146,6 +155,19 @@ class NodeHandle:
 
     async def get_param_names(self) -> List[str]:
         return await self._master_api_client.get_param_names()
+
+    async def subscribe_param(
+        self,
+        key: str,
+        callback: Callable[[str, Any], None]
+    ) -> Tuple[Any, Callback]:
+        return await self._param_manager.subscribe_param(key, callback)
+
+    async def unsubscribe_param_callback(
+        self,
+        callback: Callback
+    ) -> bool:
+        return await self._param_manager.unsubscribe_callback(callback)
 
     async def create_subscription(
         self,
