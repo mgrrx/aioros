@@ -149,7 +149,7 @@ class NodeHandle:
         return await self._master_api_client.has_param(
             self.resolve_name(key))
 
-    async def search_param(self, key: str):
+    async def search_param(self, key: str) -> Any:
         return await self._master_api_client.search_param(
             self.resolve_name(key))
 
