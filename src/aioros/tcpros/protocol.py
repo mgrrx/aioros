@@ -65,9 +65,8 @@ def encode_header(header: Dict[str, str]) -> bytes:
     return _struct_I.pack(len(data)) + data
 
 
-async def read_ok_byte(reader: StreamReader) -> int:
-    ok_byte = await reader.readexactly(1)
-    return _struct_B.unpack(ok_byte)[0]
+async def read_byte(reader: StreamReader) -> int:
+    return _struct_B.unpack(await reader.readexactly(1))[0]
 
 
 def encode_byte(value: int) -> bytes:

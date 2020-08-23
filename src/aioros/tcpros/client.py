@@ -9,10 +9,10 @@ from typing import TypeVar
 
 from .protocol import Serializer
 from .protocol import encode_header
+from .protocol import read_byte
 from .protocol import read_data
 from .protocol import read_error
 from .protocol import read_header
-from .protocol import read_ok_byte
 from .utils import split_tcpros_uri
 
 
@@ -89,7 +89,7 @@ class Client:
             writer.write(data)
         await writer.drain()
 
-        ok = await read_ok_byte(reader)
+        ok = await read_byte(reader)
         if not ok:
             error = await read_error(reader)
             raise ServiceError(error)
