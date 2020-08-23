@@ -132,6 +132,9 @@ class NodeHandle:
             await self._api_server.cleanup()
             self._api_server = None
 
+        self._tcpros_uri = None
+        self._xmlrpc_uri = None
+
     async def delete_param(self, key: str) -> None:
         return await self._master_api_client.delete_param(
             self.resolve_name(key))
