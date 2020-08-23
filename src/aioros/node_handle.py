@@ -156,6 +156,10 @@ class NodeHandle:
     async def get_param_names(self) -> List[str]:
         return await self._master_api_client.get_param_names()
 
+    async def lookup_service(self, service: str) -> str:
+        return await self._master_api_client.lookup_service(
+            self.resolve_name(service))
+
     async def subscribe_param(
         self,
         key: str,
