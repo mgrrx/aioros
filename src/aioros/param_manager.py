@@ -52,6 +52,7 @@ class ParamManager:
             return False
         if not callbacks:
             await self._master_api_client.unsusbcribe_param(key)
+            self._cache.pop(key)
             self._callbacks.pop(key)
         return True
 
