@@ -1,9 +1,10 @@
 from asyncio import get_event_loop
 from asyncio import iscoroutinefunction
 from collections import defaultdict
-from typing import Callable
 from typing import Any
+from typing import Callable
 from typing import Dict
+from typing import NamedTuple
 from typing import Set
 from typing import Tuple
 
@@ -13,10 +14,8 @@ from .api.master_api_client import MasterApiClient
 CallbackFunc = Callable[[str, Any], None]
 
 
-class Callback:
-
-    def __init__(self, callback: CallbackFunc):
-        self.callback: CallbackFunc = callback
+class Callback(NamedTuple):
+    callback: CallbackFunc
 
 
 class ParamManager:
