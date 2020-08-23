@@ -168,7 +168,9 @@ class NodeHandle:
         key: str,
         callback: Callable[[str, Any], None]
     ) -> Tuple[Any, Callback]:
-        return await self._param_manager.subscribe_param(key, callback)
+        return await self._param_manager.subscribe_param(
+            self.resolve_name(key),
+            callback)
 
     async def unsubscribe_param_callback(
         self,
