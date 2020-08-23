@@ -107,10 +107,11 @@ class TopicManager:
         topic = self.get(topic_name)
         if not topic:
             topic = Topic(self, node_name, topic_name, msg_type)
-            await self._master_api_client.register_subscriber(
+            publishers = await self._master_api_client.register_subscriber(
                 topic.name,
                 topic.type_name)
             self._topics[topic_name] = topic
+            topic.connect_to_publishers(publishers)
         subscription = Subscription(self, topic, callback)
         topic.register_subscription(subscription)
         return subscription
