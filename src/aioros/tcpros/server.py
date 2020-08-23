@@ -9,14 +9,14 @@ from functools import wraps
 from typing import Dict
 from typing import Tuple
 
+from ..service_manager import ServiceManager
+from ..topic_manager import TopicManager
 from .protocol import Serializer
 from .protocol import encode_byte
 from .protocol import encode_header
 from .protocol import encode_str
 from .protocol import read_data
 from .protocol import read_header
-from ..service_manager import ServiceManager
-from ..topic_manager import TopicManager
 
 
 class Error(Exception):

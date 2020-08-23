@@ -6,8 +6,8 @@ from typing import Any
 from typing import List
 from typing import Tuple
 
-from aiohttp.web import Application
 from aiohttp.web import AppRunner
+from aiohttp.web import Application
 from aiohttp.web import TCPSite
 from aiohttp_xmlrpc.handler import XMLRPCView
 
