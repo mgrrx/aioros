@@ -61,11 +61,11 @@ async def handle(
                 await handle_topic(topic_manager, reader, writer, header)
         except Error as err:
             writer.write(encode_header(dict(error=err.msg)))
-            writer.drain()
+            await writer.drain()
     else:
         writer.write(
             encode_header(dict(error='no topic or service name detected')))
-        writer.drain()
+        await writer.drain()
 
     writer.close()
     if hasattr(writer, 'wait_closed'):
@@ -128,7 +128,7 @@ async def handle_service(
             with serializer.serialize(result) as data:
                 writer.write(data)
         finally:
-            writer.drain()
+            await writer.drain()
 
         if not persistent:
             return
