@@ -1,5 +1,7 @@
 from asyncio import get_event_loop
 from asyncio.base_events import Server
+from os import getuid
+from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import List
@@ -22,6 +24,7 @@ from .service_manager import SrvTypeResponse
 from .tcpros.client import Client
 from .tcpros.publisher import Publisher
 from .tcpros.server import start_server as start_tcpros_server
+from .tcpros.server import start_unix_server as start_unixros_server
 from .tcpros.service import Service
 from .tcpros.subscription import Subscription
 from .topic_manager import MsgType
@@ -34,11 +37,13 @@ class NodeHandle:
         self._graph_resource: GraphResource = GraphResource(node_name)
         self._tcpros_uri: Optional[str] = None
         self._xmlrpc_uri: Optional[str] = None
+        self._unixros_uri: Optional[str] = None
         self._master_api_client: Optional[MasterApiClient] = None
         self._service_manager: Optional[ServiceManager] = None
         self._topic_manager: Optional[TopicManager] = None
         self._param_manager: Optional[ParamManager] = None
         self._tcpros_server: Optional[Server] = None
+        self._unixros_server: Optional[Server] = None
         self._api_server: Optional[AppRunner] = None
 
     @property
@@ -64,9 +69,16 @@ class NodeHandle:
         self,
         *,
         xmlrpc_port: int = 0,
-        tcpros_port: int = 0
+        tcpros_port: int = 0,
+        unixros_path: Path = None,
     ) -> None:
         local_address = get_local_address()
+        unixros_path = \
+            unixros_path or \
+            (Path('/run/user') / str(getuid()) / self.node_name[1:])
+        if not unixros_path.parent.exists():
+            unixros_path.parent.mkdir()
+
         self._master_api_client = MasterApiClient(
             self.node_name,
             get_master_uri())
@@ -78,15 +90,21 @@ class NodeHandle:
             self._topic_manager,
             local_address,
             tcpros_port)
+        self._unixros_server, self._unixros_uri = await start_unixros_server(
+            self._service_manager,
+            self._topic_manager,
+            unixros_path)
         self._api_server, self._xmlrpc_uri = await start_node_api_server(
             self._topic_manager,
             self._param_manager,
             self.node_name,
             self._master_api_client.uri,
             self._tcpros_uri,
+            self._unixros_uri,
             local_address,
             xmlrpc_port)
         self._master_api_client.tcpros_uri = self._tcpros_uri
+        self._master_api_client.unixros_uri = self._unixros_uri
         self._master_api_client.xmlrpc_uri = self._xmlrpc_uri
 
     async def close(self) -> None:
@@ -106,6 +124,11 @@ class NodeHandle:
             await self._tcpros_server.wait_closed()
             self._tcpros_server = None
 
+        if self._unixros_server:
+            self._unixros_server.close()
+            await self._unixros_server.wait_closed()
+            self._unixros_server = None
+
         if self._master_api_client:
             await self._master_api_client.close()
             self._master_api_client = None
@@ -116,6 +139,7 @@ class NodeHandle:
 
         self._tcpros_uri = None
         self._xmlrpc_uri = None
+        self._unixros_uri = None
 
     async def delete_param(self, key: str) -> None:
         return await self._master_api_client.delete_param(

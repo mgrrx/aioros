@@ -4,6 +4,7 @@ from asyncio import Queue
 from asyncio import gather
 from asyncio import get_event_loop
 from asyncio import open_connection
+from asyncio import open_unix_connection
 from typing import Dict
 from typing import List
 from typing import Set
@@ -141,10 +142,18 @@ class Topic:
 
     async def _subscribe(self, publisher_uri: str, loop):
 
-        host, port = await self._get_publisher_host_port(publisher_uri)
+        connection_params = await self._get_publisher_connection_params(
+            publisher_uri)
 
         try:
-            reader, writer = await open_connection(host, port)
+            if connection_params[0] == 'UNIXROS':
+                print(connection_params[1])
+                reader, writer = await open_unix_connection(
+                    connection_params[1])
+            elif connection_params[0] == 'TCPROS':
+                reader, writer = await open_connection(
+                    connection_params[1],
+                    int(connection_params[2]))
             header = dict(
                 topic=self.name,
                 message_definition=self.type._full_text,
@@ -173,7 +182,7 @@ class Topic:
                 await writer.wait_closed()
             self._connected_publishers.pop(publisher_uri)
 
-    async def _get_publisher_host_port(
+    async def _get_publisher_connection_params(
         self,
         publisher_uri: str
     ) -> Tuple[str, int]:
@@ -181,10 +190,8 @@ class Topic:
         topic = await client.request_topic(
             self._node_name,
             self.name,
-            [['TCPROS']])
+            [['UNIXROS'], ['TCPROS']])
         await client.close()
-        if len(topic) != 3:
-            raise ValueError('Expecting topic information of length 3')
-        elif topic[0] != 'TCPROS':
-            raise ValueError('only TCPROS is supported')
-        return topic[1], topic[2]
+        if topic[0] not in ('UNIXROS', 'TCPROS'):
+            raise ValueError('protocol is not supported')
+        return topic

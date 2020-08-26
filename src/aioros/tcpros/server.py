@@ -3,6 +3,7 @@ from asyncio import Queue
 from asyncio import StreamReader
 from asyncio import StreamWriter
 from asyncio import start_server as _start_server
+from asyncio import start_unix_server as _start_unix_server
 from asyncio.base_events import Server
 from functools import partial
 from functools import wraps
@@ -177,3 +178,14 @@ async def start_server(
         port=port)
 
     return server, 'rosrpc://{}:{}'.format(*server.sockets[0].getsockname())
+
+
+async def start_unix_server(
+    service_manager: ServiceManager,
+    topic_manager: TopicManager,
+    path
+) -> Tuple[Server, str]:
+    server: Server = await _start_unix_server(
+        partial(handle, service_manager, topic_manager),
+        path=path)
+    return server, str(path)

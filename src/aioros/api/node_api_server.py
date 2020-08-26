@@ -122,9 +122,14 @@ class NodeAPI(XMLRPCView):
     ) -> Tuple[int, str, List[Any]]:
         topic = self.request.app['topic_manager'].topics.get(topic)
         if not topic:
-            return 0, 'no supported protocol implementations', []
-        host, port = split_tcpros_uri(self.request.app['tcpros_uri'])
-        return 1, '', ['TCPROS', host, port]
+            return 0, 'topic not published', []
+        for protocol in protocols:
+            if protocol[0] == 'TCPROS':
+                host, port = split_tcpros_uri(self.request.app['tcpros_uri'])
+                return 1, '', ['TCPROS', host, port]
+            elif protocol[0] == 'UNIXROS':
+                return 1, '', ['UNIXROS', self.request.app['unixros_uri']]
+        return 0, 'no supported protocol implementations', []
 
 
 async def start_server(
@@ -133,6 +138,7 @@ async def start_server(
     node_name: str,
     master_uri: str,
     tcpros_uri: str,
+    unixros_uri: str,
     host: str,
     port: int
 ) -> Tuple[AppRunner, str]:
@@ -149,6 +155,7 @@ async def start_server(
     app['master_uri'] = master_uri
     app['xmlrpc_uri'] = xmlrpc_uri
     app['tcpros_uri'] = tcpros_uri
+    app['unixros_uri'] = unixros_uri
     app['topic_manager'] = topic_manager
     app['param_manager'] = param_manager
 
