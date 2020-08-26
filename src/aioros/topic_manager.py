@@ -37,8 +37,6 @@ class TopicManager:
                 await self._master_api_client.unregister_subscriber(
                     topic.name,
                     topic.type_name)
-            else:
-                print("not unregister sub", topic.name)
         self._topics.clear()
 
     async def unregister_publisher(self, publisher: Publisher) -> None:
