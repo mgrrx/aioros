@@ -1,9 +1,5 @@
+from asyncio import get_event_loop
 from asyncio.base_events import Server
-try:
-    from contextlib import asynccontextmanager
-    ASYNC_CONTEXT_MANAGER = True
-except ImportError:
-    ASYNC_CONTEXT_MANAGER = False
 from typing import Any
 from typing import Callable
 from typing import List
@@ -63,20 +59,6 @@ class NodeHandle:
 
     def resolve_name(self, name: str) -> str:
         return self._graph_resource.resolve(name)
-
-    if ASYNC_CONTEXT_MANAGER:
-        @asynccontextmanager
-        async def spin(
-            self,
-            *,
-            xmlrpc_port: int = 0,
-            tcpros_port: int = 0
-        ) -> None:
-            await self.init(xmlrpc_port=xmlrpc_port, tcpros_port=tcpros_port)
-            try:
-                yield self
-            finally:
-                await self.close()
 
     async def init(
         self,
@@ -231,3 +213,53 @@ class NodeHandle:
             self.resolve_name(srv_name),
             srv_type,
             persistent=persistent)
+
+
+def run_until_complete(
+    func: Callable[[NodeHandle], int],
+    node_name: str,
+    *,
+    loop=None,
+    xmlrpc_port: int = 0,
+    tcpros_port: int = 0
+) -> int:
+    node_handle = NodeHandle(node_name)
+    loop = loop or get_event_loop()
+    try:
+        loop.run_until_complete(node_handle.init(
+            xmlrpc_port=xmlrpc_port,
+            tcpros_port=tcpros_port))
+        return_value = loop.run_until_complete(func(node_handle))
+    except KeyboardInterrupt as e:
+        loop.run_until_complete(node_handle.close())
+        loop.stop()
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        return -1
+    else:
+        loop.run_until_complete(node_handle.close())
+    return return_value
+
+
+def run_forever(
+    func: Callable[[NodeHandle], int],
+    node_name: str,
+    *,
+    loop=None,
+    xmlrpc_port: int = 0,
+    tcpros_port: int = 0
+) -> None:
+    node_handle = NodeHandle(node_name)
+    loop = loop or get_event_loop()
+    try:
+        loop.run_until_complete(node_handle.init(
+            xmlrpc_port=xmlrpc_port,
+            tcpros_port=tcpros_port))
+        loop.run_until_complete(func(node_handle))
+        loop.run_forever()
+    except KeyboardInterrupt as e:
+        print("Received KeyboardInterrupt, shutting down...")
+        loop.run_until_complete(node_handle.close())
+        loop.stop()
+        loop.run_until_complete(loop.shutdown_asyncgens())
+    else:
+        loop.run_until_complete(node_handle.close())
