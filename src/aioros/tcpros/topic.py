@@ -61,12 +61,15 @@ class Topic:
     def has_publishers(self) -> bool:
         return bool(self._internal_publishers)
 
+    @property
+    def is_latching(self):
+        return any(pub.latch for pub in self._internal_publishers)
+
     def get_publisher_header(self) -> Dict[str, str]:
-        latching = any(pub.latch for pub in self._internal_publishers)
         return dict(
             topic=self.name,
             type=self.type_name,
-            latching='1' if latching else '0',
+            latching='1' if self.is_latching else '0',
             message_definition=self.type._full_text,
             md5sum=self.md5sum,
             callerid=self._node_name)
@@ -96,6 +99,9 @@ class Topic:
         return self.has_subscriptions
 
     async def publish(self, publisher: Publisher, msg):
+        if not self._connected_subscribers and not self.is_latching:
+            return
+
         with self._serializer.serialize(msg) as serialized_msg:
             await gather(*[
                 queue.put(serialized_msg)
