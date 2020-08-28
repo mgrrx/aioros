@@ -1,3 +1,4 @@
+from asyncio import iscoroutinefunction
 from asyncio import Event
 from asyncio import IncompleteReadError
 from asyncio import Queue
@@ -173,7 +174,10 @@ class Topic:
                 msg = self.type()
                 msg.deserialize(await read_data(reader))
                 for sub in self._internal_subscriptions:
-                    loop.create_task(sub.callback(msg))
+                    if iscoroutinefunction(sub.callback):
+                        loop.create_task(sub.callback(msg))
+                    else:
+                        loop.call_soon(sub.callback, msg)
         except (ConnectionResetError, IncompleteReadError):
             pass
         finally:
