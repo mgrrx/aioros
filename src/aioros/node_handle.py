@@ -54,14 +54,6 @@ class NodeHandle:
     def namespace(self) -> str:
         return self._graph_resource.namespace
 
-    @property
-    def tcpros_uri(self) -> Optional[str]:
-        return self._tcpros_uri
-
-    @property
-    def xmlrpc_uri(self) -> Optional[str]:
-        return self._xmlrpc_uri
-
     def resolve_name(self, name: str) -> str:
         return self._graph_resource.resolve(name)
 
