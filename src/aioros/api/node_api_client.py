@@ -20,8 +20,10 @@ class NodeApiClient:
 
     def __init__(
         self,
+        own_node_name: str,
         node_uri: str
     ) -> None:
+        self._own_node_name = own_node_name
         self._proxy = ServerProxy(node_uri)
 
     @property
@@ -34,11 +36,10 @@ class NodeApiClient:
     @validate()
     async def request_topic(
         self,
-        node_name: str,  # own node name
         resolved_topic: str,
         protocols: List[str]
     ) -> List[Any]:
         return await self._proxy.requestTopic(
-            node_name,
+            self._own_node_name,
             resolved_topic,
             protocols)

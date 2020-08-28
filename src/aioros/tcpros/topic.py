@@ -186,9 +186,8 @@ class Topic:
         self,
         publisher_uri: str
     ) -> Tuple[str, int]:
-        client = NodeApiClient(publisher_uri)
+        client = NodeApiClient(self._node_name, publisher_uri)
         topic = await client.request_topic(
-            self._node_name,
             self.name,
             [['UNIXROS'], ['TCPROS']])
         await client.close()
