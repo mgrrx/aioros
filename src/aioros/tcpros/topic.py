@@ -148,7 +148,6 @@ class Topic:
 
         try:
             if connection_params[0] == 'UNIXROS':
-                print(connection_params[1])
                 reader, writer = await open_unix_connection(
                     connection_params[1])
             elif connection_params[0] == 'TCPROS':
