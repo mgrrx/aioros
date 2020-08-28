@@ -56,12 +56,17 @@ class ParamManager:
         return True
 
     def update(self, key: str, value: Any) -> bool:
-        if key.endswith('/'):  # no idea why this is needed
-            key = key[:-1]
-
         self._cache[key] = value
 
-        callbacks = self._callbacks.get(key)
+        callbacks = set()
+        namespace = '/'
+        for ns in key.split('/'):
+            if not ns:
+                continue
+            namespace += ns
+            callbacks |= set(self._callbacks.get(namespace, set()))
+            namespace += '/'
+
         if callbacks is None:
             return False
         loop = get_event_loop()
