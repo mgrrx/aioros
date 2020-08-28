@@ -43,3 +43,34 @@ class NodeApiClient:
             self._own_node_name,
             resolved_topic,
             protocols)
+
+    @validate()
+    async def shutdown(
+        self,
+        msg: str = ''
+    ) -> None:
+        return await self._proxy.shutdown(
+            self._own_node_name,
+            msg)
+
+    @validate()
+    async def param_update(
+        self,
+        key: str,
+        value: Any
+    ) -> None:
+        return await self._proxy.paramUpdate(
+            self._own_node_name,
+            key,
+            value)
+
+    @validate()
+    async def publisher_update(
+        self,
+        topic: str,
+        publishers: List[str]
+    ) -> None:
+        return await self._proxy.publisherUpdate(
+            self._own_node_name,
+            topic,
+            publishers)
