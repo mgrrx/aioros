@@ -10,6 +10,8 @@ from typing import Tuple
 
 from aiohttp.web import AppRunner
 
+from genpy import Time
+
 from .api.master_api_client import MasterApiClient
 from .api.node_api_server import start_server as start_node_api_server
 from .graph_resource import GraphResource
@@ -27,6 +29,8 @@ from .tcpros.server import start_server as start_tcpros_server
 from .tcpros.server import start_unix_server as start_unixros_server
 from .tcpros.service import Service
 from .tcpros.subscription import Subscription
+from .time_manager import start_time_manager
+from .time_manager import TimeManager
 from .topic_manager import MsgType
 from .topic_manager import TopicManager
 
@@ -45,6 +49,7 @@ class NodeHandle:
         self._tcpros_server: Optional[Server] = None
         self._unixros_server: Optional[Server] = None
         self._api_server: Optional[AppRunner] = None
+        self._time_manager: Optional[TimeManager] = None
 
     @property
     def node_name(self) -> str:
@@ -95,11 +100,16 @@ class NodeHandle:
             self._unixros_uri,
             local_address,
             xmlrpc_port)
+        self._time_manager = await start_time_manager(self)
         self._master_api_client.tcpros_uri = self._tcpros_uri
         self._master_api_client.unixros_uri = self._unixros_uri
         self._master_api_client.xmlrpc_uri = self._xmlrpc_uri
 
     async def close(self) -> None:
+        if self._time_manager:
+            await self._time_manager.close()
+            self._time_manager = None
+
         if self._service_manager:
             await self._service_manager.close()
             self._service_manager = None
@@ -229,6 +239,9 @@ class NodeHandle:
             self.resolve_name(srv_name),
             srv_type,
             persistent=persistent)
+
+    def get_time(self) -> Time:
+        return self._time_manager.get_time()
 
 
 def run_until_complete(

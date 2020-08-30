@@ -32,6 +32,7 @@ async def main(node_handle: aioros.NodeHandle):
     value2, c2 = await node_handle.subscribe_param("/bla", async_cb)
     print("initial value1", value1)
     print("initial value2", value2)
+    print(node_handle.get_time())
     await asyncio.sleep(30)
 
 

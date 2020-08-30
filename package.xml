@@ -12,6 +12,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <run_depend>genpy</run_depend>
+  <run_depend>rosgraph_msgs</run_depend>
   <run_depend>python3-aiohttp</run_depend>
   <run_depend>python3-aiohttp-xmlrpc</run_depend>
 
