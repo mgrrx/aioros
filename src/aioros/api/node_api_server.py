@@ -95,16 +95,8 @@ class NodeAPI(XMLRPCView):
         self,
         caller_id: str,
         parameter_key: str,
-        *args,
-        **kwargs
+        parameter_value: Any
     ) -> IntResult:
-        # TODO args/kwargs is a workaround for
-        # https://github.com/mosquito/aiohttp-xmlrpc/issues/21
-
-        if args:
-            parameter_value = args[0]
-        else:
-            parameter_value = kwargs
         success = self.request.app['param_manager'].update(
             parameter_key,
             parameter_value)
