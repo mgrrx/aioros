@@ -113,14 +113,17 @@ class Topic:
                 event.set()
         return self.has_subscriptions
 
-    async def publish(self, publisher: Publisher, msg):
+    def publish(
+        self,
+        publisher: Publisher,
+        msg: Message
+    ) -> None:
         if not self._connected_subscribers and not self.is_latching:
             return
 
         with self._serializer.serialize(msg) as serialized_msg:
-            await gather(*[
-                queue.put(serialized_msg)
-                for queue in self._connected_subscribers])
+            for queue in self._connected_subscribers:
+                queue.put_nowait(serialized_msg)
             if publisher.latch:
                 self._latched_msgs[publisher] = serialized_msg
 
