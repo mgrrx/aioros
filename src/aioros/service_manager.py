@@ -21,12 +21,12 @@ class ServiceDoesNotExist(Exception):
 
 class ServiceManager:
 
-    def __init__(self, master_api_client: MasterApiClient):
-        self._master_api_client: MasterApiClient = master_api_client
+    def __init__(self, master_api_client: MasterApiClient) -> None:
+        self._master_api_client = master_api_client
         self._clients: List[Client] = []
         self._services: Dict[str, Service] = {}
 
-    async def close(self):
+    async def close(self) -> None:
         for client in self._clients:
             await client.close()
         self._clients.clear()
@@ -39,7 +39,7 @@ class ServiceManager:
             del self._services[service.name]
             await self._master_api_client.unregister_service(service.name)
 
-    def __contains__(self, service_name: str):
+    def __contains__(self, service_name: str) -> bool:
         return service_name in self._services
 
     def get(self, service_name: str) -> Optional[Service]:

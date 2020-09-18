@@ -1,15 +1,17 @@
+from asyncio import AbstractEventLoop
 from asyncio import iscoroutinefunction
 from asyncio import Event
 from asyncio import IncompleteReadError
 from asyncio import Queue
-from asyncio import gather
-from asyncio import get_event_loop
 from asyncio import open_connection
 from asyncio import open_unix_connection
 from typing import Dict
 from typing import List
 from typing import Set
 from typing import Tuple
+from typing import Type
+
+from genpy import Message
 
 from ..api.node_api_client import NodeApiClient
 from .protocol import Serializer
@@ -26,25 +28,30 @@ class SubscriberInitError(Exception):
 
 class Topic:
 
-    def __init__(self, manager, node_name, topic_name, msg_type):
-        self._manager = manager
-        self._node_name: str = node_name
-        self._topic_name: str = topic_name
+    def __init__(
+        self,
+        loop: AbstractEventLoop,
+        node_name: str,
+        topic_name: str,
+        msg_type: Type[Message]
+    ) -> None:
+        self._loop = loop
+        self._node_name = node_name
+        self._topic_name = topic_name
         self._msg_type = msg_type
-        self._serializer: Serializer = Serializer()
-
         self._connected_subscribers: Set[Queue] = set()
         self._connected_publishers: Dict[str, Event] = {}
         self._internal_subscriptions: Set[Subscription] = set()
         self._internal_publishers: Set[Publisher] = set()
-        self._latched_msgs = {}
+        self._latched_msgs: Dict[Publisher, bytes] = {}
+        self._serializer: Serializer = Serializer()
 
     @property
     def name(self) -> str:
         return self._topic_name
 
     @property
-    def type(self):
+    def type(self) -> Type[Message]:
         return self._msg_type
 
     @property
@@ -64,7 +71,7 @@ class Topic:
         return bool(self._internal_publishers)
 
     @property
-    def is_latching(self):
+    def is_latching(self) -> bool:
         return any(pub.latch for pub in self._internal_publishers)
 
     def get_publisher_header(self) -> Dict[str, str]:
@@ -76,7 +83,10 @@ class Topic:
             md5sum=self.md5sum,
             callerid=self._node_name)
 
-    def register_publisher(self, publisher: Publisher) -> None:
+    def register_publisher(
+        self,
+        publisher: Publisher
+    ) -> None:
         self._internal_publishers.add(publisher)
 
     async def unregister_publisher(
@@ -87,14 +97,17 @@ class Topic:
         self._internal_publishers.discard(publisher)
         return self.has_publishers
 
-    def register_subscription(self, subscription: Subscription) -> None:
+    def register_subscription(
+        self,
+        subscription: Subscription
+    ) -> None:
         self._internal_subscriptions.add(subscription)
 
     async def unregister_subscription(
         self,
         subscription: Subscription
     ) -> bool:
-        self._internal_subscriptions.pop(subscription)
+        self._internal_subscriptions.discard(subscription)
         if not self.has_subscriptions:
             for event in self._connected_publishers.values():
                 event.set()
@@ -111,7 +124,11 @@ class Topic:
             if publisher.latch:
                 self._latched_msgs[publisher] = serialized_msg
 
-    async def connect_subscriber(self, node_name: str, queue: Queue) -> None:
+    async def connect_subscriber(
+        self,
+        node_name: str,
+        queue: Queue
+    ) -> None:
         for publisher in self._internal_publishers:
             if publisher.on_peer_connect:
                 msg = publisher.on_peer_connect(node_name)
@@ -124,25 +141,33 @@ class Topic:
                 await queue.put(serialized_msg)
         self._connected_subscribers.add(queue)
 
-    def disconnect_subscriber(self, node_name: str) -> None:
+    def disconnect_subscriber(
+        self,
+        node_name: str
+    ) -> None:
         for publisher in self._internal_publishers:
             if publisher.on_peer_disconnect:
                 publisher.on_peer_disconnect(node_name)
 
-    def connect_to_publishers(self, publishers: List[str]) -> None:
-        loop = get_event_loop()
-        _publishers = set(publishers)
+    def connect_to_publishers(
+        self,
+        publishers: List[str]
+    ) -> None:
+        publishers_set = set(publishers)
         for publisher_uri in publishers:
             if publisher_uri in self._connected_publishers:
                 continue
             self._connected_publishers[publisher_uri] = Event()
-            loop.create_task(self._subscribe(publisher_uri, loop))
+            self._loop.create_task(
+                self._subscribe(publisher_uri))
         for publisher_uri in self._connected_publishers:
-            if publisher_uri not in _publishers:
+            if publisher_uri not in publishers_set:
                 self._connected_publishers[publisher_uri].set()
 
-    async def _subscribe(self, publisher_uri: str, loop):
-
+    async def _subscribe(
+        self,
+        publisher_uri: str
+    ) -> None:
         connection_params = await self._get_publisher_connection_params(
             publisher_uri)
 
@@ -174,9 +199,9 @@ class Topic:
                 msg.deserialize(await read_data(reader))
                 for sub in self._internal_subscriptions:
                     if iscoroutinefunction(sub.callback):
-                        loop.create_task(sub.callback(msg))
+                        self._loop.create_task(sub.callback(msg))
                     else:
-                        loop.call_soon(sub.callback, msg)
+                        self._loop.call_soon(sub.callback, msg)
         except (ConnectionResetError, IncompleteReadError):
             pass
         finally:

@@ -1,8 +1,9 @@
-from asyncio import get_event_loop
+from asyncio import AbstractEventLoop
 from asyncio import iscoroutinefunction
 from collections import defaultdict
 from typing import Any
 from typing import Callable
+from typing import DefaultDict
 from typing import Dict
 from typing import NamedTuple
 from typing import Set
@@ -20,10 +21,15 @@ class Callback(NamedTuple):
 
 class ParamManager:
 
-    def __init__(self, master_api_client: MasterApiClient) -> None:
-        self._master_api_client: MasterApiClient = master_api_client
-        self._callbacks: Dict[str, Set[Callback]] = defaultdict(set)
-        self._cache = {}
+    def __init__(
+        self,
+        master_api_client: MasterApiClient,
+        loop: AbstractEventLoop
+    ) -> None:
+        self._master_api_client = master_api_client
+        self._loop = loop
+        self._callbacks: DefaultDict[str, Set[Callback]] = defaultdict(set)
+        self._cache: Dict[str, Any] = {}
 
     async def subscribe_param(
         self,
@@ -69,10 +75,9 @@ class ParamManager:
 
         if callbacks is None:
             return False
-        loop = get_event_loop()
         for callback in callbacks:
             if iscoroutinefunction(callback.callback):
-                loop.create_task(callback.callback(key, value))
+                self._loop.create_task(callback.callback(key, value))
             else:
-                loop.call_soon(callback.callback, key, value)
+                self._loop.call_soon(callback.callback, key, value)
         return True

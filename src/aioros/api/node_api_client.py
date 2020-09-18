@@ -24,7 +24,7 @@ class NodeApiClient:
         node_uri: str
     ) -> None:
         self._own_node_name = own_node_name
-        self._proxy = ServerProxy(node_uri)
+        self._proxy: ServerProxy = ServerProxy(node_uri)
 
     @property
     def uri(self) -> str:

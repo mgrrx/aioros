@@ -39,8 +39,8 @@ class Client:
         srv_type: SrvType,
         tcpros_uri: str
     ) -> None:
-        self._srv_name: str = srv_name
-        self._srv_type: SrvType = srv_type
+        self._srv_name = srv_name
+        self._srv_type = srv_type
         self._host, self._port = split_tcpros_uri(tcpros_uri)
         self._serializer: Serializer = Serializer()
         self._header: Dict[str, str] = dict(

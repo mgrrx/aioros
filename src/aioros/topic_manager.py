@@ -1,30 +1,33 @@
+from asyncio import AbstractEventLoop
 from typing import Callable
 from typing import Dict
 from typing import Optional
-from typing import TypeVar
+from typing import Type
+
+from genpy import Message
 
 from .api.master_api_client import MasterApiClient
 from .tcpros.publisher import Publisher
 from .tcpros.subscription import Subscription
 from .tcpros.topic import Topic
 
-MsgType = TypeVar('MsgType')
-
 
 class TopicManager:
 
     def __init__(
         self,
-        master_api_client: MasterApiClient
+        master_api_client: MasterApiClient,
+        loop: AbstractEventLoop
     ) -> None:
-        self._master_api_client: MasterApiClient = master_api_client
+        self._loop = loop
+        self._master_api_client = master_api_client
         self._topics: Dict[str, Topic] = {}
 
     @property
     def topics(self) -> Dict[str, Topic]:
         return self._topics
 
-    def get(self, topic_name) -> Optional[Topic]:
+    def get(self, topic_name: str) -> Optional[Topic]:
         return self._topics.get(topic_name)
 
     async def close(self) -> None:
@@ -39,7 +42,10 @@ class TopicManager:
                     topic.type_name)
         self._topics.clear()
 
-    async def unregister_publisher(self, publisher: Publisher) -> None:
+    async def unregister_publisher(
+        self,
+        publisher: Publisher
+    ) -> None:
         if publisher.topic_name not in self._topics:
             return
 
@@ -73,15 +79,15 @@ class TopicManager:
         self,
         node_name: str,
         topic_name: str,
-        msg_type: MsgType,
+        msg_type: Type[Message],
         *,
-        on_peer_connect: Optional[Callable] = None,
-        on_peer_disconnect: Optional[Callable] = None,
+        on_peer_connect: Optional[Callable[[str], Optional[Message]]] = None,
+        on_peer_disconnect: Optional[Callable[[str], None]] = None,
         latch: bool = False
     ) -> Publisher:
         topic = self.get(topic_name)
         if not topic:
-            topic = Topic(self, node_name, topic_name, msg_type)
+            topic = Topic(self._loop, node_name, topic_name, msg_type)
             await self._master_api_client.register_publisher(
                 topic.name,
                 topic.type_name)
@@ -99,12 +105,12 @@ class TopicManager:
         self,
         node_name: str,
         topic_name: str,
-        msg_type: MsgType,
-        callback: Callable[[MsgType], None]
+        msg_type: Type[Message],
+        callback: Callable[[Message], None]
     ) -> Subscription:
         topic = self.get(topic_name)
         if not topic:
-            topic = Topic(self, node_name, topic_name, msg_type)
+            topic = Topic(self._loop, node_name, topic_name, msg_type)
             publishers = await self._master_api_client.register_subscriber(
                 topic.name,
                 topic.type_name)

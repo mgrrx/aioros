@@ -33,10 +33,10 @@ class MasterApiClient:
         tcpros_uri: Optional[str] = None,
         unixros_uri: Optional[str] = None
     ) -> None:
-        self._node_name: str = node_name
-        self.xmlrpc_uri: Optional[str] = xmlrpc_uri
-        self.tcpros_uri: Optional[str] = tcpros_uri
-        self.unixros_uri: Optional[str] = unixros_uri
+        self._node_name = node_name
+        self.xmlrpc_uri = xmlrpc_uri
+        self.tcpros_uri = tcpros_uri
+        self.unixros_uri = unixros_uri
         self._proxy: ServerProxy = ServerProxy(
             master_uri,
             client=ClientSession(

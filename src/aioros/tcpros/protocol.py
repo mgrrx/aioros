@@ -3,21 +3,25 @@ from contextlib import contextmanager
 from io import BytesIO
 from itertools import count
 from struct import Struct
+from typing import BinaryIO
+from typing import Counter
 from typing import Dict
+from typing import Generator
 
+from genpy import Message
 
-_struct_B = Struct('<B')
-_struct_I = Struct('<I')
+_struct_B: Struct = Struct('<B')
+_struct_I: Struct = Struct('<I')
 
 
 class Serializer:
 
     def __init__(self):
-        self._buf = BytesIO()
-        self._seq = count()
+        self._buf: BinaryIO = BytesIO()
+        self._seq: Counter = count(1)
 
     @contextmanager
-    def serialize(self, msg):
+    def serialize(self, msg: Message) -> Generator[bytes, None, None]:
         if getattr(msg.__class__, "_has_header", False):
             header = msg.header
             header.seq = next(self._seq)

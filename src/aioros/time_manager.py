@@ -29,9 +29,9 @@ class WallTimeManager(TimeManager):
 class SimTimeManager(TimeManager):
 
     def __init__(self):
+        self._time: Optional[Time] = None
         self._subscription: Optional[Subscription] = None
-        self._time = None
-        self._time_initialized = Event()
+        self._time_initialized: Event = Event()
 
     async def init(self, node_handle):
         self._subscription = await node_handle.create_subscription(

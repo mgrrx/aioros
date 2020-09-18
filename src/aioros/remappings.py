@@ -3,9 +3,11 @@ import sys
 from typing import Dict
 from typing import Iterator
 from typing import Optional
+from typing import Pattern
 
 
-REMAP_PATTERN = re.compile(r'^(?P<src>(\~)?[a-zA-Z0-9][\w\/]+):=(?P<dst>.+)')
+REMAP_PATTERN: Pattern = re.compile(
+    r'^(?P<src>(\~)?[a-zA-Z0-9][\w\/]+):=(?P<dst>.+)')
 
 
 class Remappings:

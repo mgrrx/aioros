@@ -1,4 +1,5 @@
 from asyncio import get_event_loop
+from asyncio import AbstractEventLoop
 from asyncio.base_events import Server
 from os import getuid
 from pathlib import Path
@@ -7,9 +8,11 @@ from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Type
 
 from aiohttp.web import AppRunner
 
+from genpy import Message
 from genpy import Time
 
 from .api.master_api_client import MasterApiClient
@@ -31,17 +34,19 @@ from .tcpros.service import Service
 from .tcpros.subscription import Subscription
 from .time_manager import start_time_manager
 from .time_manager import TimeManager
-from .topic_manager import MsgType
 from .topic_manager import TopicManager
 
 
 class NodeHandle:
 
-    def __init__(self, node_name: str) -> None:
+    def __init__(
+        self,
+        node_name: str,
+        *,
+        loop: Optional[AbstractEventLoop] = None,
+    ) -> None:
+        self._loop: AbstractEventLoop = loop or get_event_loop()
         self._graph_resource: GraphResource = GraphResource(node_name)
-        self._tcpros_uri: Optional[str] = None
-        self._xmlrpc_uri: Optional[str] = None
-        self._unixros_uri: Optional[str] = None
         self._master_api_client: Optional[MasterApiClient] = None
         self._service_manager: Optional[ServiceManager] = None
         self._topic_manager: Optional[TopicManager] = None
@@ -67,10 +72,10 @@ class NodeHandle:
         *,
         xmlrpc_port: int = 0,
         tcpros_port: int = 0,
-        unixros_path: Path = None,
+        unixros_path: Optional[Path] = None,
     ) -> None:
         local_address = get_local_address()
-        unixros_path = \
+        unixros_path: Path = \
             unixros_path or \
             (Path('/run/user') / str(getuid()) / self.node_name[1:])
         if not unixros_path.parent.exists():
@@ -79,31 +84,36 @@ class NodeHandle:
         self._master_api_client = MasterApiClient(
             self.node_name,
             get_master_uri())
-        self._service_manager = ServiceManager(self._master_api_client)
-        self._topic_manager = TopicManager(self._master_api_client)
-        self._param_manager = ParamManager(self._master_api_client)
-        self._tcpros_server, self._tcpros_uri = await start_tcpros_server(
+        self._service_manager = ServiceManager(
+            self._master_api_client)
+        self._topic_manager = TopicManager(
+            self._master_api_client,
+            self._loop)
+        self._param_manager = ParamManager(
+            self._master_api_client,
+            self._loop)
+        self._tcpros_server, tcpros_uri = await start_tcpros_server(
             self._service_manager,
             self._topic_manager,
             local_address,
             tcpros_port)
-        self._unixros_server, self._unixros_uri = await start_unixros_server(
+        self._unixros_server, unixros_uri = await start_unixros_server(
             self._service_manager,
             self._topic_manager,
             unixros_path)
-        self._api_server, self._xmlrpc_uri = await start_node_api_server(
+        self._api_server, xmlrpc_uri = await start_node_api_server(
             self._topic_manager,
             self._param_manager,
             self.node_name,
             self._master_api_client.uri,
-            self._tcpros_uri,
-            self._unixros_uri,
+            tcpros_uri,
+            unixros_uri,
             local_address,
             xmlrpc_port)
+        self._master_api_client.tcpros_uri = tcpros_uri
+        self._master_api_client.unixros_uri = unixros_uri
+        self._master_api_client.xmlrpc_uri = xmlrpc_uri
         self._time_manager = await start_time_manager(self)
-        self._master_api_client.tcpros_uri = self._tcpros_uri
-        self._master_api_client.unixros_uri = self._unixros_uri
-        self._master_api_client.xmlrpc_uri = self._xmlrpc_uri
 
     async def close(self) -> None:
         if self._time_manager:
@@ -138,10 +148,6 @@ class NodeHandle:
         if self._api_server:
             await self._api_server.cleanup()
             self._api_server = None
-
-        self._tcpros_uri = None
-        self._xmlrpc_uri = None
-        self._unixros_uri = None
 
     async def delete_param(self, key: str) -> None:
         return await self._master_api_client.delete_param(
@@ -189,8 +195,8 @@ class NodeHandle:
     async def create_subscription(
         self,
         topic_name: str,
-        msg_type: MsgType,
-        callback: Callable[[MsgType], None]
+        msg_type: Type[Message],
+        callback: Callable[[Message], None]
     ) -> Subscription:
         return await self._topic_manager.create_subscription(
             self.node_name,
@@ -201,10 +207,10 @@ class NodeHandle:
     async def create_publisher(
         self,
         topic_name: str,
-        msg_type: MsgType,
+        msg_type: Type[Message],
         *,
-        on_peer_connect: Optional[Callable] = None,
-        on_peer_disconnect: Optional[Callable] = None,
+        on_peer_connect: Optional[Callable[[str], Optional[Message]]] = None,
+        on_peer_disconnect: Optional[Callable[[str], None]] = None,
         latch: bool = False
     ) -> Publisher:
         return await self._topic_manager.create_publisher(
@@ -250,14 +256,19 @@ def run_until_complete(
     *,
     loop=None,
     xmlrpc_port: int = 0,
-    tcpros_port: int = 0
+    tcpros_port: int = 0,
+    unixros_path: Optional[Path] = None,
+    node_handle_cls: Type[NodeHandle] = NodeHandle,
 ) -> int:
-    node_handle = NodeHandle(node_name)
+    node_handle = node_handle_cls(
+        node_name,
+        loop=loop)
     loop = loop or get_event_loop()
     try:
         loop.run_until_complete(node_handle.init(
             xmlrpc_port=xmlrpc_port,
-            tcpros_port=tcpros_port))
+            tcpros_port=tcpros_port,
+            unixros_path=unixros_path))
         return_value = loop.run_until_complete(func(node_handle))
     except KeyboardInterrupt as e:
         loop.run_until_complete(node_handle.close())
@@ -275,18 +286,22 @@ def run_forever(
     *,
     loop=None,
     xmlrpc_port: int = 0,
-    tcpros_port: int = 0
+    tcpros_port: int = 0,
+    unixros_path: Optional[Path] = None,
+    node_handle_cls: Type[NodeHandle] = NodeHandle,
 ) -> None:
-    node_handle = NodeHandle(node_name)
+    node_handle = node_handle_cls(
+        node_name,
+        loop=loop)
     loop = loop or get_event_loop()
     try:
         loop.run_until_complete(node_handle.init(
             xmlrpc_port=xmlrpc_port,
-            tcpros_port=tcpros_port))
+            tcpros_port=tcpros_port,
+            unixros_path=unixros_path))
         loop.run_until_complete(func(node_handle))
         loop.run_forever()
     except KeyboardInterrupt as e:
-        print("Received KeyboardInterrupt, shutting down...")
         loop.run_until_complete(node_handle.close())
         loop.stop()
         loop.run_until_complete(loop.shutdown_asyncgens())

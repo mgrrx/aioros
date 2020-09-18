@@ -7,6 +7,7 @@ from asyncio import start_unix_server as _start_unix_server
 from asyncio.base_events import Server
 from functools import partial
 from functools import wraps
+from pathlib import Path
 from typing import Dict
 from typing import Tuple
 
@@ -183,7 +184,7 @@ async def start_server(
 async def start_unix_server(
     service_manager: ServiceManager,
     topic_manager: TopicManager,
-    path
+    path: Path
 ) -> Tuple[Server, str]:
     server: Server = await _start_unix_server(
         partial(handle, service_manager, topic_manager),
