@@ -30,7 +30,7 @@ class Publisher:
         return self.topic.name
 
     async def close(self) -> None:
-        self._manager.unregister_publisher(self)
+        await self._manager.unregister_publisher(self)
 
     async def publish(self, msg):
         self.topic.publish(self, msg)

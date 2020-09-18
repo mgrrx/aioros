@@ -12,4 +12,4 @@ class Subscription:
         return self.topic.name
 
     async def close(self) -> None:
-        self._manager.unregister_subscription(self)
+        await self._manager.unregister_subscription(self)
