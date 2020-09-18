@@ -55,6 +55,7 @@ class ParamManager:
                 break
         else:
             return False
+
         if not callbacks:
             await self._master_api_client.unsusbcribe_param(key)
             self._cache.pop(key)
@@ -73,8 +74,9 @@ class ParamManager:
             callbacks |= set(self._callbacks.get(namespace, set()))
             namespace += '/'
 
-        if callbacks is None:
+        if not callbacks:
             return False
+
         for callback in callbacks:
             if iscoroutinefunction(callback.callback):
                 self._loop.create_task(callback.callback(key, value))
