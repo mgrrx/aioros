@@ -132,7 +132,7 @@ class NodeAPI(XMLRPCView):
         return 0, 'no supported protocol implementations', []
 
 
-async def start_server(
+async def start_node_api_server(
     topic_manager: TopicManager,
     param_manager: ParamManager,
     node_name: str,

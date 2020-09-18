@@ -16,7 +16,7 @@ from genpy import Message
 from genpy import Time
 
 from .api.master_api_client import MasterApiClient
-from .api.node_api_server import start_server as start_node_api_server
+from .api.node_api_server import start_node_api_server
 from .graph_resource import GraphResource
 from .graph_resource import get_local_address
 from .graph_resource import get_master_uri
@@ -28,8 +28,8 @@ from .service_manager import SrvTypeRequest
 from .service_manager import SrvTypeResponse
 from .tcpros.client import Client
 from .tcpros.publisher import Publisher
-from .tcpros.server import start_server as start_tcpros_server
-from .tcpros.server import start_unix_server as start_unixros_server
+from .tcpros.server import start_tcpros_server
+from .tcpros.server import start_unixros_server
 from .tcpros.service import Service
 from .tcpros.subscription import Subscription
 from .time_manager import start_time_manager
