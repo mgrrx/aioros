@@ -63,6 +63,14 @@ class Topic:
         return self._msg_type._md5sum
 
     @property
+    def nr_connected_subscribers(self) -> int:
+        return len(self._connected_subscribers)
+
+    @property
+    def nr_connected_publishers(self) -> int:
+        return len(self._connected_publishers)
+
+    @property
     def has_subscriptions(self) -> bool:
         return bool(self._internal_subscriptions)
 
