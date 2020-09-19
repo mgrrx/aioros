@@ -20,6 +20,8 @@ from .api.node_api_server import start_node_api_server
 from .graph_resource import GraphResource
 from .graph_resource import get_local_address
 from .graph_resource import get_master_uri
+from .logging_manager import LoggingManager
+from .logging_manager import start_logging_manager
 from .param_manager import Callback
 from .param_manager import ParamManager
 from .service_manager import ServiceManager
@@ -56,6 +58,7 @@ class NodeHandle:
         self._unixros_server: Optional[Server] = None
         self._api_server: Optional[AppRunner] = None
         self._time_manager: Optional[TimeManager] = None
+        self._logging_manager: Optional[LoggingManager] = None
 
     @property
     def node_name(self) -> str:
@@ -74,6 +77,7 @@ class NodeHandle:
         xmlrpc_port: int = 0,
         tcpros_port: int = 0,
         unixros_path: Optional[Path] = None,
+        configure_logging: bool = True
     ) -> None:
         local_address = get_local_address()
         unixros_path: Path = \
@@ -115,6 +119,10 @@ class NodeHandle:
         self._master_api_client.unixros_uri = unixros_uri
         self._master_api_client.xmlrpc_uri = xmlrpc_uri
         self._time_manager = await start_time_manager(self)
+        if configure_logging:
+            self._logging_manager = await start_logging_manager(self)
+        else:
+            self._logging_manager = None
 
     async def close(self) -> None:
         if self._time_manager:
@@ -124,6 +132,10 @@ class NodeHandle:
         if self._service_manager:
             await self._service_manager.close()
             self._service_manager = None
+
+        if self._logging_manager:
+            await self._logging_manager.close()
+            self._logging_manager = None
 
         if self._topic_manager:
             await self._topic_manager.close()
