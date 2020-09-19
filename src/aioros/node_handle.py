@@ -121,8 +121,6 @@ class NodeHandle:
         self._time_manager = await start_time_manager(self)
         if configure_logging:
             self._logging_manager = await start_logging_manager(self)
-        else:
-            self._logging_manager = None
 
     async def close(self) -> None:
         if self._time_manager:
