@@ -39,8 +39,10 @@ class Topic:
         self._node_name = node_name
         self._topic_name = topic_name
         self._msg_type = msg_type
-        self._connected_subscribers: Set[Queue] = set()
+        self._connected_subscribers: Dict[str, Queue] = {}
         self._connected_publishers: Dict[str, Event] = {}
+        self._has_connected_subscribers: Event = Event()
+        self._has_connected_publishers: Event = Event()
         self._internal_subscriptions: Set[Subscription] = set()
         self._internal_publishers: Set[Publisher] = set()
         self._latched_msgs: Dict[Publisher, bytes] = {}
@@ -69,6 +71,12 @@ class Topic:
     @property
     def nr_connected_publishers(self) -> int:
         return len(self._connected_publishers)
+
+    async def wait_for_connected_subscribers(self) -> None:
+        await self._has_connected_subscribers.wait()
+
+    async def wait_for_connected_publishers(self) -> None:
+        await self._has_connected_publishers.wait()
 
     @property
     def has_subscriptions(self) -> bool:
@@ -130,7 +138,7 @@ class Topic:
             return
 
         with self._serializer.serialize(msg) as serialized_msg:
-            for queue in self._connected_subscribers:
+            for queue in self._connected_subscribers.values():
                 queue.put_nowait(serialized_msg)
             if publisher.latch:
                 self._latched_msgs[publisher] = serialized_msg
@@ -150,7 +158,8 @@ class Topic:
             serialized_msg = self._latched_msgs.get(publisher)
             if serialized_msg is not None:
                 await queue.put(serialized_msg)
-        self._connected_subscribers.add(queue)
+        self._connected_subscribers[node_name] = queue
+        self._has_connected_subscribers.set()
 
     def disconnect_subscriber(
         self,
@@ -159,6 +168,9 @@ class Topic:
         for publisher in self._internal_publishers:
             if publisher.on_peer_disconnect:
                 publisher.on_peer_disconnect(node_name)
+        del self._connected_subscribers[node_name]
+        if not self._connected_subscribers:
+            self._has_connected_subscribers.clear()
 
     def connect_to_publishers(
         self,
@@ -205,6 +217,8 @@ class Topic:
             if 'error' in header_dict:
                 raise SubscriberInitError(header_dict['error'])
 
+            self._has_connected_publishers.set()
+
             while not self._connected_publishers[publisher_uri].is_set():
                 msg = self.type()
                 msg.deserialize(await read_data(reader))
@@ -220,6 +234,8 @@ class Topic:
             if hasattr(writer, 'wait_closed'):
                 await writer.wait_closed()
             self._connected_publishers.pop(publisher_uri)
+            if not self._connected_publishers:
+                self._has_connected_publishers.clear()
 
     async def _get_publisher_connection_params(
         self,

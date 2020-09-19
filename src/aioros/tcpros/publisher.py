@@ -16,7 +16,7 @@ class Publisher:
         latch: bool = False
     ) -> None:
         self._manager = manager
-        self.topic = topic
+        self._topic = topic
         self.on_peer_connect = on_peer_connect
         self.on_peer_disconnect = on_peer_disconnect
         self._latch = latch
@@ -27,10 +27,13 @@ class Publisher:
 
     @property
     def topic_name(self) -> str:
-        return self.topic.name
+        return self._topic.name
+
+    async def wait_for_subscribers(self):
+        await self._topic.wait_for_connected_subscribers()
 
     async def close(self) -> None:
         await self._manager.unregister_publisher(self)
 
     def publish(self, msg):
-        self.topic.publish(self, msg)
+        self._topic.publish(self, msg)
