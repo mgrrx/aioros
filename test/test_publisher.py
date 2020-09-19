@@ -14,20 +14,14 @@ def on_peer_disconnect(node_name):
     print('node', node_name, 'disconnected')
 
 
-async def main(nh: aioros.NodeHandle):
+async def setup(nh: aioros.NodeHandle):
     pub: aioros.Publisher = await nh.create_publisher(
         'chatter',
         String,
         on_peer_connect=on_peer_connect,
         on_peer_disconnect=on_peer_disconnect)
-    msg = String(data='test')
-
-    while True:
-        print(msg)
-        pub.publish(msg)
-        await asyncio.sleep(1)
-    return 0
+    nh.create_timer(1.0, partial(pub.publish, String(data='test')))
 
 
 if __name__ == '__main__':
-    aioros.run_until_complete(main, 'test_publisher')
+    aioros.run_forever(setup, 'test_publisher')

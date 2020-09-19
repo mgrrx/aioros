@@ -34,6 +34,7 @@ from .tcpros.service import Service
 from .tcpros.subscription import Subscription
 from .time_manager import start_time_manager
 from .time_manager import TimeManager
+from .timer import Timer
 from .topic_manager import TopicManager
 
 
@@ -245,6 +246,16 @@ class NodeHandle:
             self.resolve_name(srv_name),
             srv_type,
             persistent=persistent)
+
+    def create_timer(
+        self,
+        period: float,
+        callback: Callable
+    ) -> None:
+        return Timer(
+            period,
+            callback,
+            loop=self._loop)
 
     def get_time(self) -> Time:
         return self._time_manager.get_time()
