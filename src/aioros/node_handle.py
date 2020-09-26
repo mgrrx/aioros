@@ -1,6 +1,7 @@
 from asyncio import get_event_loop
 from asyncio import AbstractEventLoop
 from asyncio.base_events import Server
+from asyncio.runners import _cancel_all_tasks
 from os import getuid
 from pathlib import Path
 from typing import Any
@@ -292,6 +293,7 @@ def run_until_complete(
             unixros_path=unixros_path))
         return_value = loop.run_until_complete(func(node_handle))
     except KeyboardInterrupt as e:
+        _cancel_all_tasks(loop)
         loop.run_until_complete(node_handle.close())
         loop.stop()
         loop.run_until_complete(loop.shutdown_asyncgens())
@@ -323,6 +325,7 @@ def run_forever(
         loop.run_until_complete(func(node_handle))
         loop.run_forever()
     except KeyboardInterrupt as e:
+        _cancel_all_tasks(loop)
         loop.run_until_complete(node_handle.close())
         loop.stop()
         loop.run_until_complete(loop.shutdown_asyncgens())

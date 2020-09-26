@@ -41,8 +41,6 @@ def handle_io_error(func):
             await func(service_manager, topic_manager, reader, writer)
         except (ConnectionResetError, IncompleteReadError):
             writer.close()
-            if hasattr(writer, 'wait_closed'):
-                await writer.wait_closed()
 
     return wrapper
 
