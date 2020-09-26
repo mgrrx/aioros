@@ -48,7 +48,8 @@ class MasterApiClient:
         return self._proxy.url
 
     async def close(self) -> None:
-        await self._proxy.close()
+        async with self._lock:
+            await self._proxy.close()
 
     @validate_with_keyerror(return_value=False)
     async def delete_param(self, key: str) -> None:

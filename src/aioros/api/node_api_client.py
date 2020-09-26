@@ -1,3 +1,4 @@
+from asyncio import Lock
 from functools import partial
 from typing import Any
 from typing import List
@@ -25,13 +26,15 @@ class NodeApiClient:
     ) -> None:
         self._own_node_name = own_node_name
         self._proxy: ServerProxy = ServerProxy(node_uri)
+        self._lock: Lock = Lock()
 
     @property
     def uri(self) -> str:
         return self._proxy.url
 
     async def close(self) -> None:
-        await self._proxy.close()
+        async with self._lock:
+            await self._proxy.close()
 
     @validate()
     async def request_topic(
@@ -39,19 +42,21 @@ class NodeApiClient:
         resolved_topic: str,
         protocols: List[str]
     ) -> List[Any]:
-        return await self._proxy.requestTopic(
-            self._own_node_name,
-            resolved_topic,
-            protocols)
+        async with self._lock:
+            return await self._proxy.requestTopic(
+                self._own_node_name,
+                resolved_topic,
+                protocols)
 
     @validate()
     async def shutdown(
         self,
         msg: str = ''
     ) -> None:
-        return await self._proxy.shutdown(
-            self._own_node_name,
-            msg)
+        async with self._lock:
+            return await self._proxy.shutdown(
+                self._own_node_name,
+                msg)
 
     @validate()
     async def param_update(
@@ -59,10 +64,11 @@ class NodeApiClient:
         key: str,
         value: Any
     ) -> None:
-        return await self._proxy.paramUpdate(
-            self._own_node_name,
-            key,
-            value)
+        async with self._lock:
+            return await self._proxy.paramUpdate(
+                self._own_node_name,
+                key,
+                value)
 
     @validate()
     async def publisher_update(
@@ -70,7 +76,8 @@ class NodeApiClient:
         topic: str,
         publishers: List[str]
     ) -> None:
-        return await self._proxy.publisherUpdate(
-            self._own_node_name,
-            topic,
-            publishers)
+        async with self._lock:
+            return await self._proxy.publisherUpdate(
+                self._own_node_name,
+                topic,
+                publishers)
