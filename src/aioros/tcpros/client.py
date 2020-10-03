@@ -89,8 +89,8 @@ class Client:
             writer.write(data)
         await writer.drain()
 
-        ok = await read_byte(reader)
-        if not ok:
+        ok_byte = await read_byte(reader)
+        if not ok_byte:
             error = await read_error(reader)
             raise ServiceError(error)
 

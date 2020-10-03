@@ -1,9 +1,11 @@
 from asyncio import IncompleteReadError
-from asyncio import Queue
 from asyncio import StreamReader
 from asyncio import StreamWriter
+from asyncio import get_running_loop
 from asyncio import start_server
 from asyncio import start_unix_server
+from asyncio import wait
+from asyncio import FIRST_COMPLETED
 from asyncio.base_events import Server
 from functools import partial
 from functools import wraps
@@ -19,6 +21,7 @@ from .protocol import encode_header
 from .protocol import encode_str
 from .protocol import read_data
 from .protocol import read_header
+from .topic import Subscriber
 
 
 class Error(Exception):
@@ -152,13 +155,25 @@ async def handle_topic(
         writer.write(encode_header(topic.get_publisher_header()))
         await writer.drain()
 
-        queue = Queue()
-        await topic.connect_subscriber(header['callerid'], queue)
+        subscriber = Subscriber()
+        await topic.connect_subscriber(header['callerid'], subscriber)
+
+        loop = get_running_loop()
+
+        should_terminate = loop.create_task(
+            subscriber.close.wait())
 
         while True:
-            writer.write(await queue.get())
+            queue_task = loop.create_task(subscriber.queue.get())
+            done, _ = await wait(
+                {should_terminate, queue_task},
+                return_when=FIRST_COMPLETED)
+            if should_terminate in done:
+                queue_task.cancel()
+                break
+            writer.write(queue_task.result())
             await writer.drain()
-            queue.task_done()
+            subscriber.queue.task_done()
     except Exception as err:
         topic.disconnect_subscriber(header['callerid'])
         raise err

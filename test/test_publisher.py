@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import asyncio
+from functools import partial
 import aioros
 from std_msgs.msg import String
 

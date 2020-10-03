@@ -41,9 +41,9 @@ class ParamManager:
             self._cache[key] = param_value
         else:
             param_value = self._cache[key]
-        cb = Callback(callback)
-        self._callbacks[key].add(cb)
-        return param_value, cb
+        _callback = Callback(callback)
+        self._callbacks[key].add(_callback)
+        return param_value, _callback
 
     async def unsubscribe_callback(
         self,

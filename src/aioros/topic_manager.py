@@ -1,7 +1,9 @@
 from asyncio import AbstractEventLoop
+from asyncio import Queue
 from typing import Callable
 from typing import Dict
 from typing import Optional
+from typing import Tuple
 from typing import Type
 
 from genpy import Message
@@ -17,10 +19,12 @@ class TopicManager:
     def __init__(
         self,
         master_api_client: MasterApiClient,
+        node_name: str,
         loop: AbstractEventLoop
     ) -> None:
-        self._loop = loop
         self._master_api_client = master_api_client
+        self._node_name = node_name
+        self._loop = loop
         self._topics: Dict[str, Topic] = {}
 
     @property
@@ -50,30 +54,9 @@ class TopicManager:
             return
 
         topic = self._topics[publisher.topic_name]
-        unregister_publisher = await topic.unregister_publisher(publisher)
-        if unregister_publisher:
-            await self._master_api_client.unregister_publisher(
-                topic.name,
-                topic.type_name)
+        await topic.unregister_publisher(publisher)
         if not topic.has_subscriptions and not topic.has_publishers:
             del self._topics[publisher.topic_name]
-
-    async def unregister_subscription(
-        self,
-        subscription: Subscription
-    ) -> bool:
-        if subscription.topic_name not in self._topics:
-            return
-
-        topic = self._topics[subscription.topic_name]
-        unregister_subscription = await topic.unregister_subscription(
-            subscription)
-        if unregister_subscription:
-            await self._master_api_client.unregister_subscriber(
-                topic.name,
-                topic.type_name)
-        if not topic.has_subscriptions and not topic.has_publishers:
-            del self._topics[subscription.topic_name]
 
     async def create_publisher(
         self,
@@ -87,10 +70,12 @@ class TopicManager:
     ) -> Publisher:
         topic = self.get(topic_name)
         if not topic:
-            topic = Topic(self._loop, node_name, topic_name, msg_type)
-            await self._master_api_client.register_publisher(
-                topic.name,
-                topic.type_name)
+            topic = Topic(
+                self._loop,
+                self._master_api_client,
+                node_name,
+                topic_name,
+                msg_type)
             self._topics[topic_name] = topic
         publisher = Publisher(
             self,
@@ -98,24 +83,39 @@ class TopicManager:
             on_peer_connect=on_peer_connect,
             on_peer_disconnect=on_peer_disconnect,
             latch=latch)
-        topic.register_publisher(publisher)
+        await topic.register_publisher(publisher)
         return publisher
 
-    async def create_subscription(
+    def create_subscription(
         self,
-        node_name: str,
         topic_name: str,
-        msg_type: Type[Message],
-        callback: Callable[[Message], None]
+        msg_type: Type[Message]
     ) -> Subscription:
-        topic = self.get(topic_name)
+        return Subscription(self, topic_name, msg_type)
+
+    async def register_subscription(
+        self,
+        subscription: Subscription
+    ) -> Tuple[Topic, Queue]:
+        topic = self.get(subscription.topic_name)
         if not topic:
-            topic = Topic(self._loop, node_name, topic_name, msg_type)
-            publishers = await self._master_api_client.register_subscriber(
-                topic.name,
-                topic.type_name)
-            self._topics[topic_name] = topic
-            topic.connect_to_publishers(publishers)
-        subscription = Subscription(self, topic, callback)
-        topic.register_subscription(subscription)
-        return subscription
+            topic = Topic(
+                self._loop,
+                self._master_api_client,
+                self._node_name,
+                subscription.topic_name,
+                subscription.msg_type)
+            self._topics[subscription.topic_name] = topic
+        queue = Queue()
+        await topic.register_subscription(subscription, queue)
+        return topic, queue
+
+    async def unregister_subscription(
+        self,
+        subscription: Subscription
+    ) -> None:
+        topic = self.get(subscription.topic_name)
+        if not topic:
+            return
+        if await topic.unregister_subscription(subscription):
+            del self._topics[subscription.topic_name]

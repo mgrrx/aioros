@@ -94,6 +94,7 @@ class NodeHandle:
             self._master_api_client)
         self._topic_manager = TopicManager(
             self._master_api_client,
+            self.node_name,
             self._loop)
         self._param_manager = ParamManager(
             self._master_api_client,
@@ -204,17 +205,14 @@ class NodeHandle:
     ) -> bool:
         return await self._param_manager.unsubscribe_callback(callback)
 
-    async def create_subscription(
+    def create_subscription(
         self,
         topic_name: str,
-        msg_type: Type[Message],
-        callback: Callable[[Message], None]
+        msg_type: Type[Message]
     ) -> Subscription:
-        return await self._topic_manager.create_subscription(
-            self.node_name,
+        return self._topic_manager.create_subscription(
             self.resolve_name(topic_name),
-            msg_type,
-            callback)
+            msg_type)
 
     async def create_publisher(
         self,
@@ -292,7 +290,7 @@ def run_until_complete(
             tcpros_port=tcpros_port,
             unixros_path=unixros_path))
         return_value = loop.run_until_complete(func(node_handle))
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         _cancel_all_tasks(loop)
         loop.run_until_complete(node_handle.close())
         loop.stop()
@@ -324,7 +322,7 @@ def run_forever(
             unixros_path=unixros_path))
         loop.run_until_complete(func(node_handle))
         loop.run_forever()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         _cancel_all_tasks(loop)
         loop.run_until_complete(node_handle.close())
         loop.stop()

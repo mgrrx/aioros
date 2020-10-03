@@ -18,6 +18,7 @@ class Timer:
         self._period = period
         self._callback = callback
         self._loop = loop or get_event_loop()
+        self._running = False
         loop.create_task(self._run())
 
     def stop(self):

@@ -35,5 +35,6 @@ class Publisher:
     async def close(self) -> None:
         await self._manager.unregister_publisher(self)
 
-    def publish(self, msg):
-        self._topic.publish(self, msg)
+    def publish(self, msg: Message):
+        if isinstance(msg, Message):
+            self._topic.publish(self, msg)
