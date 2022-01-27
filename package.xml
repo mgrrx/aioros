@@ -2,8 +2,8 @@
 <package>
 
   <name>aioros</name>
-  <version>0.0.1</version>
-  <description>Python 3 asyncio based ROS client library</description>
+  <version>0.2.0</version>
+  <description>Python 3 anyio based ROS client library</description>
 
   <author>Markus Grimm</author>
   <maintainer email="grimm.markus@gmail.com">Markus Grimm</maintainer>
@@ -14,8 +14,11 @@
 
   <run_depend>genpy</run_depend>
   <run_depend>rosgraph_msgs</run_depend>
-  <run_depend>python3-aiohttp</run_depend>
-  <run_depend>python3-aiohttp-xmlrpc</run_depend>
+  <run_depend>python3-anyio</run_depend>
+  <run_depend>python3-lxml</run_depend>
+  <run_depend>python3-h11</run_depend>
+  <run_depend>python3-httpx</run_depend>
+  <test_depend>pytest-mock</test_depend>
 
   <export />
 
