@@ -81,7 +81,7 @@ class MasterApiHandle(ServerHandle):
     async def setParam(self, caller_id: str, key: str, value: Any) -> IntResult:
         # pylint: disable=unused-argument
         self._master.param_cache[key] = value
-        # TODO self._reg_man.on_param_update(key, value, caller_id)
+        self._master.registry.on_param_update(key, value, caller_id)
         return 1, "", 0
 
     @log
@@ -91,7 +91,7 @@ class MasterApiHandle(ServerHandle):
             del self._master.param_cache[key]
         except KeyError:
             return -1, f"Parameter [{key}] is not set", 0
-        # TODO self._reg_man.on_param_update(key, {}, caller_id)
+        self._master.registry.on_param_update(key, {}, caller_id)
         return 1, "", 0
 
     @log
@@ -202,6 +202,24 @@ class MasterApiHandle(ServerHandle):
                 if topic.startswith(subgraph)
             ],
         )
+
+    @log
+    async def subscribeParam(
+        self, caller_id: str, caller_api: str, key: str
+    ) -> AnyResult:
+        try:
+            param_value = self._master.param_cache[key]
+        except KeyError:
+            param_value = {}
+        self._master.registry.register_param_subscriber(key, caller_id, caller_api)
+        return 1, "", param_value
+
+    @log
+    async def unsubscribeParam(
+        self, caller_id: str, caller_api: str, key: str
+    ) -> IntResult:
+        self._master.registry.unregister_param_subscriber(key, caller_id, caller_api)
+        return 1, "", 1
 
     @log
     async def getTopicTypes(

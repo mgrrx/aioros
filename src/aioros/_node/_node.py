@@ -30,6 +30,7 @@ from ..xmlrpc import handle as handle_xmlrpc
 from ._api import MasterApiClient, NodeApiHandle
 from ._context import node
 from ._logging import init_logging
+from ._param_cache import ParamCache
 from ._tcpros._protocol import encode_header, read_header
 from ._tcpros._service_client import NonPersistentServiceClient, PersistentServiceClient
 from ._tcpros._service_server import ServiceServer
@@ -122,6 +123,7 @@ class Node(abc.Node):
         tcpros_uri: str,
         udsros_uri: str,
         registry: Registry,
+        param_cache: ParamCache,
         remapping: abc.Remapping,
     ) -> None:
         self._task_group = task_group
@@ -131,6 +133,7 @@ class Node(abc.Node):
         self._tcpros_uri = tcpros_uri
         self._udsros_uri = udsros_uri
         self._registry = registry
+        self._param_cache = param_cache
         self._master = MasterApiClient(master_uri, self)
         self._remapping = remapping
         self._time: Optional[Time] = None
@@ -180,7 +183,23 @@ class Node(abc.Node):
 
     async def get_param(self, key: str) -> XmlRpcTypes:
         key = self._resolve_name(key)
-        return await self._master.get_param(key)
+        if key in self._param_cache:
+            return self._param_cache[key]
+
+        value = await self._master.get_param(key)
+        self._param_cache.update(key, value)
+        return value
+
+    async def get_param_cached(self, key: str) -> XmlRpcTypes:
+        key = self._resolve_name(key)
+        if key in self._param_cache:
+            return self._param_cache[key]
+        # Not yet registered
+        value = await self._master.subscribe_param(key)
+        self._param_cache.add(key, value)
+        if isinstance(value, dict) and not value:
+            raise KeyError(key)
+        return value
 
     async def get_param_default(self, key: str, default: XmlRpcTypes) -> XmlRpcTypes:
         try:
@@ -191,10 +210,12 @@ class Node(abc.Node):
     async def set_param(self, key: str, value: XmlRpcTypes) -> None:
         key = self._resolve_name(key)
         await self._master.set_param(key, value)
+        self._param_cache.update(key, value)
 
     async def delete_param(self, key: str) -> None:
         key = self._resolve_name(key)
         await self._master.delete_param(key)
+        self._param_cache.delete(key)
 
     async def has_param(self, key: str) -> bool:
         key = self._resolve_name(key)
@@ -373,6 +394,7 @@ async def init_node(
         logger.info("Initializing ROS node [%s]", xmlrpc_uri)
 
         registry = Registry()
+        param_cache = ParamCache()
         ros_node = Node(
             task_group=task_group,
             name=node_name,
@@ -382,6 +404,7 @@ async def init_node(
             tcpros_uri=tcpros_uri,
             udsros_uri=udsros_uri,
             registry=registry,
+            param_cache=param_cache,
             remapping=remapping,
         )
 
@@ -393,7 +416,7 @@ async def init_node(
 
             task_group.start_soon(
                 xmlrpc_listener.serve,
-                partial(handle_xmlrpc, NodeApiHandle(ros_node, registry)),
+                partial(handle_xmlrpc, NodeApiHandle(ros_node, registry, param_cache)),
             )
             task_group.start_soon(
                 tcpros_listener.serve, partial(ros_node.handle_tcpros, "TCPROS")

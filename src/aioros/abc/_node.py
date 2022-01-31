@@ -212,6 +212,10 @@ class Node(metaclass=ABCMeta):
         ...
 
     @abstractmethod
+    async def get_param_cached(self, key: str) -> XmlRpcTypes:
+        ...
+
+    @abstractmethod
     async def set_param(self, key: str, value: XmlRpcTypes) -> None:
         ...
 

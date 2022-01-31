@@ -8,9 +8,18 @@ from anyio import create_memory_object_stream
 from anyio.abc import TaskGroup
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
-from .._node._api import NodeApiClient
+from .._node._api import NodeApiClient, XmlRpcTypes
+from .._utils._resolve import join, normalize_namespace, split
 
 logger = logging.getLogger(__name__)
+
+
+def compute_all_keys(key: str, value: Dict[str, XmlRpcTypes]) -> Iterator[str]:
+    for k, v in value.items():
+        _key = key + k + "/"
+        yield _key
+        if isinstance(v, dict):
+            yield from compute_all_keys(_key, v)
 
 
 class Registration(NamedTuple):
@@ -29,6 +38,7 @@ class Node:
     services: Set[str] = field(init=False, default_factory=set)
     publications: Set[str] = field(init=False, default_factory=set)
     subscriptions: Set[str] = field(init=False, default_factory=set)
+    param_subscriptions: Set[str] = field(init=False, default_factory=set)
     send_stream: MemoryObjectSendStream[Task] = field(init=False)
     receive_stream: MemoryObjectReceiveStream[Task] = field(init=False)
 
@@ -55,6 +65,7 @@ class Node:
                 self.services,
                 self.publications,
                 self.subscriptions,
+                self.param_subscriptions,
             )
         )
 
@@ -62,6 +73,9 @@ class Node:
         self.send_stream.send_nowait(
             Task(NodeApiClient.publisher_update, [topic, publishers])
         )
+
+    def param_update(self, key: str, value: XmlRpcTypes) -> None:
+        self.send_stream.send_nowait(Task(NodeApiClient.param_update, [key, value]))
 
     def shutdown(self, msg: str) -> None:
         self.send_stream.send_nowait(Task(NodeApiClient.shutdown, [msg]))
@@ -75,6 +89,9 @@ class Registry:
         init=False, default_factory=lambda: defaultdict(set)
     )
     subscriptions: Dict[str, Set[Registration]] = field(
+        init=False, default_factory=lambda: defaultdict(set)
+    )
+    param_subscribers: Dict[str, Set[Registration]] = field(
         init=False, default_factory=lambda: defaultdict(set)
     )
     topic_types: Dict[str, str] = field(init=False, default_factory=dict)
@@ -185,3 +202,76 @@ class Registry:
 
         self._check_topic(topic)
         self._update_subscribers(topic)
+
+    def register_param_subscriber(
+        self, key: str, caller_id: str, caller_api: str
+    ) -> None:
+        key = normalize_namespace(join(key))
+        self._register_node(caller_id, caller_api).param_subscriptions.add(key)
+
+        self.param_subscribers[key].add(Registration(caller_id, caller_api))
+
+    def unregister_param_subscriber(
+        self, key: str, caller_id: str, caller_api: str
+    ) -> None:
+        key = normalize_namespace(join(key))
+
+        if key in self.param_subscribers:
+            self.param_subscribers[key].discard(Registration(caller_id, caller_api))
+            if not self.param_subscribers[key]:
+                del self.param_subscribers[key]
+
+        if node := self.nodes.get(caller_id):
+            node.param_subscriptions.discard(key)
+            self._check_node(caller_id)
+
+    def on_param_update(
+        self, param_key: str, param_value: XmlRpcTypes, caller_id_to_ignore: str
+    ) -> None:
+        if not self.param_subscribers:
+            return
+
+        param_key = normalize_namespace(join(param_key))
+
+        if isinstance(param_value, dict):
+            all_keys = set(compute_all_keys(param_key, param_value))
+        else:
+            all_keys = None
+
+        logger.debug("subscribers %s", self.param_subscribers)
+
+        for key, subscribers in self.param_subscribers.items():
+            if param_key.startswith(key):
+                value = param_value
+                key = param_key
+            elif (
+                all_keys is not None
+                and key.startswith(param_key)
+                and key not in all_keys
+            ):
+                value = {}
+            else:
+                continue
+
+            for registration in subscribers:
+                if registration.caller_id == caller_id_to_ignore:
+                    continue
+
+                node = self.nodes[registration.caller_id]
+                node.param_update(key[:-1], value)
+
+        if all_keys is None:
+            return
+
+        for key in all_keys:
+            if key not in self.param_subscribers:
+                continue
+
+            sub_key = key[len(param_key) :]
+            value = param_value
+            for ns in split(sub_key):
+                value = value[ns]
+
+            for registration in self.param_subscribers[key]:
+                node = self.nodes[registration.caller_id]
+                node.param_update(key[:-1], value)

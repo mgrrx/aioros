@@ -7,6 +7,7 @@ from anyio.abc import AsyncResource
 from .. import abc
 from ..abc._registry import Registry
 from ..xmlrpc import ServerHandle, ServerProxy, XmlRpcTypes
+from ._param_cache import ParamCache
 from ._tcpros._utils import split_tcpros_uri, split_udsros_uri
 
 logger = logging.getLogger(__name__)
@@ -261,9 +262,10 @@ class NodeApiClient(BaseApiClient):
 
 class NodeApiHandle(ServerHandle):
     # pylint: disable=invalid-name
-    def __init__(self, node: abc.Node, registry: Registry):
+    def __init__(self, node: abc.Node, registry: Registry, param_cache: ParamCache):
         self._node = node
         self._registry = registry
+        self._param_cache = param_cache
 
     async def getName(self, caller_id: str) -> StrResult:
         """Retrieve name of this node."""
@@ -335,12 +337,12 @@ class NodeApiHandle(ServerHandle):
         )
 
     async def paramUpdate(
-        self, caller_id: str, parameter_key: str, parameter_value: Any
+        self, caller_id: str, parameter_key: str, parameter_value: XmlRpcTypes
     ) -> IntResult:
         """Callback from master with updated value of subscribed parameter."""
         # pylint: disable=unused-argument
-        # TODO
-        return -1, "", 0
+        self._param_cache.update(parameter_key, parameter_value)
+        return 1, "", 0
 
     async def publisherUpdate(
         self, caller_id: str, topic: str, publishers: List[str]
