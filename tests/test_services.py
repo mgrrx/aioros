@@ -4,7 +4,7 @@ from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
 
 from aioros import init_node
 from aioros.master import init_master
-from anyio_xmlrpc.client import ServerProxy
+from aioros.xmlrpc import ServerProxy
 
 pytestmark = pytest.mark.anyio
 
