@@ -1,5 +1,3 @@
-from typing import cast
-
 import pytest
 from std_msgs.msg import String
 
@@ -12,22 +10,16 @@ pytestmark = pytest.mark.anyio
 
 async def test_pubsub() -> None:
     async with init_master() as master:
-        async with cast(
-            Node,
-            init_node(
-                "test_publisher",
-                master_uri=master.xmlrpc_uri,
-                register_signal_handler=False,
-                configure_logging=False,
-            ),
-        ) as publisher_node, cast(
-            Node,
-            init_node(
-                "test_subscriber",
-                master_uri=master.xmlrpc_uri,
-                register_signal_handler=False,
-                configure_logging=False,
-            ),
+        async with init_node(
+            "test_publisher",
+            master_uri=master.xmlrpc_uri,
+            register_signal_handler=False,
+            configure_logging=False,
+        ) as publisher_node, init_node(
+            "test_subscriber",
+            master_uri=master.xmlrpc_uri,
+            register_signal_handler=False,
+            configure_logging=False,
         ) as subscriber_node:
             async with publisher_node.create_publication(
                 "/topic", String, latched=True
