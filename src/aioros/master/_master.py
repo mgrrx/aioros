@@ -15,6 +15,3 @@ class Master:
 
     def __post_init__(self) -> None:
         self.registry = Registry(self.task_group)
-
-    async def aclose(self) -> None:
-        await self.registry.aclose()

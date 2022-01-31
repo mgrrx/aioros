@@ -30,6 +30,10 @@ def _resolve_name(name: str, node_name: str, namespace: str) -> str:
     return "/" + join(namespace, canonical_name)
 
 
+def split(key: str) -> Iterator[str]:
+    return (i for i in key.split("/") if i)
+
+
 def join(*args: str) -> str:
     return "/".join(i for arg in args for i in arg.split("/") if i)
 

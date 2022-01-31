@@ -51,6 +51,11 @@ async def get_param(key: str) -> XmlRpcTypes:
 
 
 @require_node
+async def get_param_default(key: str, default: XmlRpcTypes) -> XmlRpcTypes:
+    return await node.get().get_param_default(key, default)
+
+
+@require_node
 async def set_param(key: str, value: XmlRpcTypes) -> None:
     return await node.get().set_param(key, value)
 

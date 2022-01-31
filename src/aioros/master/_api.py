@@ -14,10 +14,9 @@ BoolResult = Tuple[int, str, bool]
 IntResult = Tuple[int, str, int]
 StrResult = Tuple[int, str, str]
 TopicInfo = Tuple[str, str]
+ReturnType = TypeVar("ReturnType")
 
 logger = logging.getLogger(__name__)
-
-ReturnType = TypeVar("ReturnType")
 
 
 async def _shutdown(scope: CancelScope, msg: str) -> None:

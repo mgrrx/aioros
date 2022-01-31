@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 TopicInfo = Tuple[str, str]
 StrResult = Tuple[int, str, str]
 IntResult = Tuple[int, str, int]
-TApiClient = TypeVar("TApiClient", bound="BaseApiClient")
+ApiClientT = TypeVar("ApiClientT", bound="BaseApiClient")
 PublishStats = Tuple[str, int, List[Tuple[int, int, int, bool]]]
 SubscribeStats = Tuple[str, List[Tuple[int, int, int, int, bool]]]
 ServiceStats = Tuple[()]
@@ -40,7 +40,7 @@ class BaseApiClient(AsyncResource):
         """Return URI of proxy."""
         return self._proxy.url
 
-    async def __aenter__(self: TApiClient) -> TApiClient:
+    async def __aenter__(self: ApiClientT) -> ApiClientT:
         await self._proxy.__aenter__()
         return self
 

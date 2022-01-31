@@ -28,6 +28,7 @@ async def init_master(
         )
         logger.debug("Starting master on %s", xmlrpc_uri)
         master = Master(xmlrpc_uri, task_group)
+
         task_group.start_soon(
             xmlrpc_listener.serve,
             partial(
@@ -40,8 +41,6 @@ async def init_master(
 
         # Main terminated, clean up
         task_group.cancel_scope.cancel()
-
-        await master.aclose()
 
 
 async def run(

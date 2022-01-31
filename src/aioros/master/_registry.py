@@ -1,10 +1,12 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, List, NamedTuple, Set
+from typing import Any, Callable, Coroutine, Dict, Iterator, List, NamedTuple, Set
 
 import httpx
+from anyio import create_memory_object_stream
 from anyio.abc import TaskGroup
+from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
 from .._node._api import NodeApiClient
 
@@ -16,32 +18,53 @@ class Registration(NamedTuple):
     api: str
 
 
+class Task(NamedTuple):
+    method: Callable[..., Coroutine[Any, Any, Any]]
+    args: List[Any]
+
+
 @dataclass(eq=False)
 class Node:
     api: str
     services: Set[str] = field(init=False, default_factory=set)
     publications: Set[str] = field(init=False, default_factory=set)
     subscriptions: Set[str] = field(init=False, default_factory=set)
-    client: NodeApiClient = field(init=False)
+    send_stream: MemoryObjectSendStream[Task] = field(init=False)
+    receive_stream: MemoryObjectReceiveStream[Task] = field(init=False)
 
     def __post_init__(self) -> None:
-        self.client = NodeApiClient(self.api, "master")
+        self.send_stream, self.receive_stream = create_memory_object_stream(
+            float("inf"), Task
+        )
+
+    async def serve(self) -> None:
+        async with NodeApiClient(self.api, "master") as client:
+            async for task in self.receive_stream:
+                logger.debug(
+                    "Calling node %s %s %s", self.api, task.method.__name__, task.args
+                )
+                try:
+                    await task.method(client, *task.args)
+                except httpx.ConnectTimeout:
+                    pass
 
     @property
     def has_any_registration(self) -> bool:
-        return any((self.services, self.publications, self.subscriptions))
+        return any(
+            (
+                self.services,
+                self.publications,
+                self.subscriptions,
+            )
+        )
 
-    async def aclose(self) -> None:
-        try:
-            await self.client.aclose()
-        except httpx.ConnectTimeout:
-            pass
+    def publisher_update(self, topic: str, publishers: List[str]) -> None:
+        self.send_stream.send_nowait(
+            Task(NodeApiClient.publisher_update, [topic, publishers])
+        )
 
-    async def publisher_update(self, topic: str, publishers: List[str]) -> None:
-        try:
-            await self.client.publisher_update(topic, publishers)
-        except httpx.ConnectTimeout:
-            logger.warning("Could not send publisher to %s", self.api)
+    def shutdown(self, msg: str) -> None:
+        self.send_stream.send_nowait(Task(NodeApiClient.shutdown, [msg]))
 
 
 @dataclass(eq=False)
@@ -57,23 +80,18 @@ class Registry:
     topic_types: Dict[str, str] = field(init=False, default_factory=dict)
     nodes: Dict[str, Node] = field(init=False, default_factory=dict)
 
-    async def aclose(self) -> None:
-        for node in self.nodes.values():
-            await node.aclose()
-
     def _register_node(self, caller_id: str, caller_api: str) -> Node:
         if node := self.nodes.get(caller_id):
             if node.api == caller_api:
                 return node
 
-            self.task_group.start_soon(
-                node.client.shutdown, "new node registered with same name"
-            )
+            node.shutdown("new node registered with same name")
             self._unregister_all(caller_id)
             node = None
 
         node = Node(caller_api)
         self.nodes[caller_id] = node
+        self.task_group.start_soon(node.serve)
         return node
 
     def _register_topic(self, topic: str, topic_type: str) -> None:
@@ -88,7 +106,7 @@ class Registry:
         node = self.nodes.get(caller_id)
         if node and not node.has_any_registration:
             del self.nodes[caller_id]
-            self.task_group.start_soon(node.aclose)
+            node.send_stream.close()
 
     def _unregister_all(self, caller_id: str) -> None:
         for service in list(self.services.keys()):
@@ -112,12 +130,7 @@ class Registry:
         ]
         for registration in self.subscriptions.get(topic, set()):
             if node := self.nodes.get(registration.caller_id):
-                # TODO this might be too greedy. We probably want a queue per node
-                # and process this queue strictly sequential to ensure that only
-                # the last update is sent
-                # also unsent entries could be dropped before sending if there is a new
-                # update to be sent
-                self.task_group.start_soon(node.publisher_update, topic, publishers)
+                node.publisher_update(topic, publishers)
 
     def register_service(
         self, name: str, caller_id: str, caller_api: str, service_api: str

@@ -4,7 +4,7 @@ import argparse
 
 import anyio
 
-from aioros.master import run
+import aioros.master
 
 
 def main() -> None:
@@ -12,7 +12,7 @@ def main() -> None:
     parser.add_argument("-p", "--port", type=int, default=11311)
     parser.add_argument("-d", "--debug", action="store_true")
     args = parser.parse_args()
-    anyio.run(run, args.port, None, args.debug)
+    anyio.run(aioros.master.run, args.port, None, args.debug)
 
 
 if __name__ == "__main__":
