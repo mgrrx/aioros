@@ -15,10 +15,13 @@
   <run_depend>genpy</run_depend>
   <run_depend>rosgraph_msgs</run_depend>
   <run_depend>python3-anyio</run_depend>
-  <run_depend>python3-lxml</run_depend>
   <run_depend>python3-h11</run_depend>
   <run_depend>python3-httpx</run_depend>
-  <test_depend>pytest-mock</test_depend>
+  <run_depend>python3-lxml</run_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>python3-pytest-cov</test_depend>
+  <test_depend>python3-pytest-mock</test_depend>
+  <test_depend>std_msgs</test_depend>
 
   <export />
 

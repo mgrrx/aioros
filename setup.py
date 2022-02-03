@@ -16,7 +16,6 @@ setup(
             "aioros.xmlrpc",
             "aioros.xmlrpc._protocol",
         ],
-        package_dir={"": "src/"},
         package_data={
             "aioros": ["py.typed"],
             "aioros.xmlrpc._protocol": ["xmlrpc.rng"],
