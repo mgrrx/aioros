@@ -1,0 +1,14 @@
+name: Build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: debian:bookworm
+    steps:
+    - name: Checkout Project
+      uses: actions/checkout@v2
+    - run: apt update
+    - name: Install dependencies
+      run: apt install -y python3-anyio python3-h11 python3-httpx python3-lxml python3-pytest python3-pytest-cov python3-pytest-mock python3-genpy python3-std-msgs python3-std-srvs python3-rosgraph-msgs
+    - name: Run tests
+      run: PYTHONPATH=. pytest-3 -s --cov=aioros
