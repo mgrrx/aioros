@@ -25,9 +25,11 @@ async def create_unix_listener(
     local_host: str, node_name: str, path: Optional[Path], fmt: str
 ) -> Tuple[SocketListener, str]:
     if platform.system() == "Linux":
-        path = path or Path("/run/user", str(os.getuid()), str(os.getpid()), node_name)
+        path = path or Path(
+            "/run/user", str(os.getuid()), str(os.getpid()), node_name[1:]
+        )
     else:
-        path = Path(mkdtemp(), node_name, "socket")
+        path = Path(mkdtemp(), node_name[1:], "socket")
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
