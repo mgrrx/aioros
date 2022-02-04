@@ -29,7 +29,7 @@ from ..xmlrpc import XmlRpcTypes
 from ..xmlrpc import handle as handle_xmlrpc
 from ._api import MasterApiClient, NodeApiHandle
 from ._context import node
-from ._logging import init_logging
+from ._logging import RosoutLogger, init_logging, rosout_logger
 from ._param_cache import ParamCache
 from ._tcpros._protocol import encode_header, read_header
 from ._tcpros._service_client import NonPersistentServiceClient, PersistentServiceClient
@@ -429,6 +429,11 @@ async def init_node(
             if initialize_time:
                 await task_group.start(ros_node.manage_time)
 
+            if configure_logging:
+                _rosout_logger = RosoutLogger()
+                task_group.start_soon(_rosout_logger.serve, ros_node)
+                logger_token = rosout_logger.set(_rosout_logger)
+
             yield ros_node
 
             # Main terminated, clean up
@@ -436,3 +441,6 @@ async def init_node(
 
             # clean up context
             node.reset(token)
+
+            if configure_logging:
+                rosout_logger.reset(logger_token)

@@ -147,7 +147,6 @@ async def test_pubsub() -> None:
 - Multiple nodes within one executable
 
 ## TODO
-- [ ] ROS-style logging via /rosout
 - [ ] Expose buffer sizes of publisher and subscriber
 - [ ] Rate and Timer
 - [ ] More tests
@@ -156,4 +155,3 @@ async def test_pubsub() -> None:
 - [ ] actionlib server
 - [ ] tf2 buffer client
 - [ ] tf2 buffer support via own pybind11 wrapper due to https://github.com/ros/geometry2/blob/noetic-devel/tf2_py/src/tf2_py.cpp#L98-L102)
-- [ ] GitHub actions

@@ -17,6 +17,11 @@ __all__ = (
     "has_param",
     "init_node",
     "is_running",
+    "logdebug",
+    "logerr",
+    "logfatal",
+    "loginfo",
+    "logwarn",
     "node_name",
     "search_param",
     "set_param",
@@ -43,6 +48,7 @@ from ._node._context import (
     search_param,
     set_param,
 )
+from ._node._logging import logdebug, logerr, logfatal, loginfo, logwarn
 from ._node._node import init_node
 from ._node._tcpros._service_client import ServiceClientError, ServiceClientInitError
 from ._node._tcpros._utils import ProtocolError
