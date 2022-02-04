@@ -5,7 +5,7 @@ from itertools import count
 from typing import Generic, Optional, Set, Type
 
 import anyio
-from anyio.abc import SocketAttribute, SocketStream
+from anyio.abc import SocketStream
 from anyio.streams.memory import MemoryObjectSendStream
 
 from ... import abc
