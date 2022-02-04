@@ -66,7 +66,7 @@ async def main() -> None:
             counter = count()
             while aioros.is_running():
                 msg = String(f"Message {next(counter)}")
-                publisher.publish_soon(msg)
+                await publisher.publish(msg)
                 await anyio.sleep(1.)
 
 
@@ -136,7 +136,7 @@ async def test_pubsub() -> None:
             ) as publisher, subscriber_node.create_subscription(
                 "/topic", String
             ) as subscription:
-                publisher.publish_soon(String("Test"))
+                await publisher.publish(String("Test"))
                 async for msg in subscription:
                     assert msg.data == "Test"
 ```

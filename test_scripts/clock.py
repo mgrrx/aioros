@@ -20,7 +20,7 @@ async def main() -> None:
             while aioros.is_running():
                 for _ in range(10):
                     print(clock)
-                    publisher.publish_soon(clock)
+                    await publisher.publish(clock)
                     clock.clock.nsecs += 100000000
                     ts += 0.1
                     await anyio.sleep_until(ts)

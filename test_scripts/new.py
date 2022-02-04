@@ -1,10 +1,11 @@
 import time
 
-import aioros
 import anyio
-from aioros.abc import Node
 from std_msgs.msg import String
 from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
+
+import aioros
+from aioros.abc import Node
 
 
 async def service_cb(request: SetBoolRequest) -> SetBoolResponse:
@@ -16,7 +17,7 @@ async def publish(node: Node):
     async with node.create_publication("/foo", String, latched=True) as publisher:
         foo = 1
         while node.is_running():
-            publisher.publish_soon(String(f"Some crap {foo}"))
+            await publisher.publish(String(f"Some crap {foo}"))
             foo += 1
             await anyio.sleep(10.0)
 

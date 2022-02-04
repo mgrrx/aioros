@@ -32,13 +32,13 @@ async def test_pubsub() -> None:
                 assert sub_reg.caller_id == subscriber_node.full_name
                 assert pub_reg.api == publisher_node.xmlrpc_uri
                 assert sub_reg.api == subscriber_node.xmlrpc_uri
-                publisher.publish_soon(String("Test"))
+                await publisher.publish(String("Test"))
                 async for msg in subscription:
                     print(msg)
                     assert msg.data == "Test"
                     break
                 for i in range(10):
-                    publisher.publish_soon(String(f"Test {i}"))
+                    await publisher.publish(String(f"Test {i}"))
                 i = 0
                 async for msg in subscription:
                     print(msg)

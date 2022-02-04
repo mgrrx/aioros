@@ -27,7 +27,7 @@ async def pub() -> None:
             while aioros.is_running():
                 msg = String(f"Message {next(counter)}")
                 logger.info("Publish %s", msg)
-                publisher.publish_soon(msg)
+                await publisher.publish(msg)
                 await anyio.sleep(1.0)
 
 

@@ -1,6 +1,5 @@
 import math
-from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import count
 from typing import Generic, Optional, Set, Type
 
@@ -14,25 +13,11 @@ from ._protocol import encode_header, serialize
 from ._utils import check_md5sum, require_fields
 
 
-@dataclass
-class LazySerializedMessage(Generic[abc.MessageT]):
-    msg: abc.MessageT
-    lock: anyio.Lock = field(init=False, default_factory=anyio.Lock)
-    serialized: bytes = bytes()
-
-    async def serialize(self) -> bytes:
-        async with self.lock:
-            if self.serialized:
-                return self.serialized
-            self.serialized = await anyio.to_thread.run_sync(serialize, self.msg)
-        return self.serialized
-
-
 @dataclass(eq=False)
 class ConnectedSubscriber(Generic[abc.MessageT]):
     protocol: str
     node_name: str
-    stream: MemoryObjectSendStream[LazySerializedMessage[abc.MessageT]]
+    stream: MemoryObjectSendStream[bytes]
 
 
 class Publication(abc.Publication[abc.MessageT]):
@@ -93,19 +78,21 @@ class Publication(abc.Publication[abc.MessageT]):
             type=getattr(self.topic_type, "_type"),
         )
 
-    def publish_soon(self, message: abc.MessageT, *, copy: bool = True) -> None:
-        if copy:
-            message = deepcopy(message)
+    def _message_serialization_needed(self):
+        return bool(self._subscribers)
+
+    async def publish(self, message: abc.MessageT) -> None:
+        if not self._message_serialization_needed():
+            return
         if getattr(message.__class__, "_has_header", False):
             if message.header.seq is None:
                 message.header.seq = next(self._seq)
-        self._internal_publish_soon(LazySerializedMessage(message))
+        data = await anyio.to_thread.run_sync(serialize, message)
+        self._internal_publish(data)
 
-    def _internal_publish_soon(
-        self, lazy_message: LazySerializedMessage[abc.MessageT]
-    ) -> None:
+    def _internal_publish(self, data: bytes) -> None:
         for subscriber in self._subscribers:
-            subscriber.stream.send_nowait(lazy_message)
+            subscriber.stream.send_nowait(data)
 
     def _on_new_subscriber(
         self,
@@ -128,9 +115,7 @@ class Publication(abc.Publication[abc.MessageT]):
         await client.send(encode_header(self.header))
 
         # TODO fix capacity
-        send_stream, receive_stream = anyio.create_memory_object_stream(
-            math.inf, LazySerializedMessage[abc.MessageT]
-        )
+        send_stream, receive_stream = anyio.create_memory_object_stream(math.inf, bytes)
 
         async with receive_stream:
             subscriber = ConnectedSubscriber(
@@ -140,9 +125,9 @@ class Publication(abc.Publication[abc.MessageT]):
             )
             self._subscribers.add(subscriber)
             self._on_new_subscriber(subscriber)
-            async for lazy_message in receive_stream:
+            async for data in receive_stream:
                 try:
-                    await client.send(await lazy_message.serialize())
+                    await client.send(data)
                 except anyio.BrokenResourceError:
                     break
             self._subscribers.discard(subscriber)
@@ -157,17 +142,18 @@ class LatchedPublication(Publication):
         node_name: str,
     ):
         super().__init__(topic_name, topic_type, master, node_name)
-        self._latch: Optional[LazySerializedMessage[abc.MessageT]] = None
+        self._latch: Optional[bytes] = None
+
+    def _message_serialization_needed(self):
+        return True
 
     @property
     def header(self) -> abc.Header:
         return dict(super().header, latching="1")
 
-    def _internal_publish_soon(
-        self, lazy_message: LazySerializedMessage[abc.MessageT]
-    ) -> None:
-        self._latch = lazy_message
-        super()._internal_publish_soon(lazy_message)
+    def _internal_publish(self, data: bytes) -> None:
+        self._latch = data
+        super()._internal_publish(data)
 
     def _on_new_subscriber(
         self,

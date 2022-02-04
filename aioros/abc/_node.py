@@ -141,7 +141,7 @@ class Publication(Generic[MessageT], metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def publish_soon(self, message: MessageT, *, copy: bool = True) -> None:
+    async def publish(self, message: MessageT) -> None:
         ...
 
 
