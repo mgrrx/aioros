@@ -388,6 +388,7 @@ async def init_node(
 
         udsros_listener, udsros_uri = await create_unix_listener(
             local_address,
+            namespace + node_name,
             udsros_path,
             "udsros://{local_host}/{path}",
         )

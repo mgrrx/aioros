@@ -22,16 +22,14 @@ async def create_tcp_listener(
 
 
 async def create_unix_listener(
-    local_host: str, path: Optional[Path], fmt: str
+    local_host: str, node_name: str, path: Optional[Path], fmt: str
 ) -> Tuple[SocketListener, str]:
     if platform.system() == "Linux":
-        path = path or Path("/run/user", str(os.getuid()), str(os.getpid()))
-        if not path.parent.parent.exists():
-            path.parent.parent.mkdir()
-        if not path.parent.exists():
-            path.parent.mkdir()
+        path = path or Path("/run/user", str(os.getuid()), str(os.getpid()), node_name)
     else:
-        path = Path(mkdtemp(), "socket")
+        path = Path(mkdtemp(), node_name, "socket")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     path.unlink(True)
 
