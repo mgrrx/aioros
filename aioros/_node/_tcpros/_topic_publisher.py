@@ -78,7 +78,7 @@ class Publication(abc.Publication[abc.MessageT]):
             type=getattr(self.topic_type, "_type"),
         )
 
-    def _message_serialization_needed(self):
+    def _message_serialization_needed(self) -> bool:
         return bool(self._subscribers)
 
     async def publish(self, message: abc.MessageT) -> None:
@@ -144,7 +144,7 @@ class LatchedPublication(Publication):
         super().__init__(topic_name, topic_type, master, node_name)
         self._latch: Optional[bytes] = None
 
-    def _message_serialization_needed(self):
+    def _message_serialization_needed(self) -> bool:
         return True
 
     @property
