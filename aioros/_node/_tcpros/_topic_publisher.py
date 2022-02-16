@@ -36,6 +36,9 @@ class Publication(abc.Publication[abc.MessageT]):
         self._seq = count(1)
         self._subscribers: Set[ConnectedSubscriber[abc.MessageT]] = set()
 
+    def clone(self) -> "abc.Publication[abc.MessageT]":
+        return self
+
     async def __aenter__(self) -> "Publication[abc.MessageT]":
         # TODO handle cancellation properly
         # TODO mutex

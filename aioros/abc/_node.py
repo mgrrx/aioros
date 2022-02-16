@@ -92,6 +92,9 @@ class Subscription(Generic[MessageT], metaclass=ABCMeta):
     async def aclose(self) -> None:
         pass
 
+    def clone(self) -> "Subscription[MessageT]":
+        ...
+
     @property
     @abstractmethod
     def topic_name(self) -> str:
@@ -124,6 +127,9 @@ class Publication(Generic[MessageT], metaclass=ABCMeta):
 
     async def aclose(self) -> None:
         pass
+
+    def clone(self) -> "Publication[MessageT]":
+        ...
 
     @property
     @abstractmethod

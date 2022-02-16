@@ -164,6 +164,9 @@ class Subscription(abc.Subscription[abc.MessageT]):
             math.inf, subscription_manager.topic_type
         )
 
+    def clone(self) -> "abc.Subscription[abc.MessageT]":
+        return Subscription(self._subscription_manager)
+
     @property
     def topic_type(self) -> Type[abc.MessageT]:
         return self._subscription_manager.topic_type
