@@ -1,7 +1,6 @@
 import logging
 import math
 from dataclasses import dataclass, field
-from email.policy import default
 from itertools import count
 from typing import Any, Dict, Generic, Iterator, List, Optional, Set, Tuple, Type, cast
 
