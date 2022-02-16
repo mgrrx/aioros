@@ -105,6 +105,10 @@ class Subscription(Generic[MessageT], metaclass=ABCMeta):
     def topic_type(self) -> Type[MessageT]:
         ...
 
+    @abstractmethod
+    async def wait_for_peers(self) -> None:
+        ...
+
     def __aiter__(self) -> "Subscription[MessageT]":
         return self
 
@@ -144,6 +148,10 @@ class Publication(Generic[MessageT], metaclass=ABCMeta):
     @property
     @abstractmethod
     def header(self) -> Header:
+        ...
+
+    @abstractmethod
+    async def wait_for_peers(self) -> None:
         ...
 
     @abstractmethod

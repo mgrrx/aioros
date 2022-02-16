@@ -44,6 +44,7 @@ class SubscriptionManager(Generic[abc.MessageT]):
     lock: anyio.Lock = field(init=False, default_factory=anyio.Lock)
     registered: bool = field(init=False, default=False)
     id_generator: Iterator[int] = field(init=False, default_factory=count)
+    condition: anyio.Condition = field(init=False, default_factory=anyio.Condition)
 
     @property
     def header(self) -> Dict[str, str]:
@@ -98,6 +99,13 @@ class SubscriptionManager(Generic[abc.MessageT]):
 
             self.task_group.start_soon(self._subscribe_task, publisher)
 
+    async def wait_for_peers(self) -> None:
+        while True:
+            if any(pub.connected for pub in self.connected_publishers.values()):
+                return
+            async with self.condition:
+                await self.condition.wait()
+
     async def _subscribe_task(self, publisher: ConnectedPublisher) -> None:
         with publisher.cancel_scope:
             protocol, params = await self._get_publisher_connection_params(
@@ -125,6 +133,8 @@ class SubscriptionManager(Generic[abc.MessageT]):
             try:
                 async with client:
                     publisher.connected = True
+                    async with self.condition:
+                        self.condition.notify_all()
                     await client.send(encode_header(self.header))
                     buffered_client = BufferedByteReceiveStream(client)
 
@@ -174,6 +184,9 @@ class Subscription(abc.Subscription[abc.MessageT]):
     @property
     def topic_name(self) -> str:
         return self._subscription_manager.topic_name
+
+    async def wait_for_peers(self) -> None:
+        await self._subscription_manager.wait_for_peers()
 
     async def __anext__(self) -> abc.MessageT:
         return await self._receive_stream.__anext__()

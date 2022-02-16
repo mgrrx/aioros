@@ -35,6 +35,7 @@ class Publication(abc.Publication[abc.MessageT]):
         self._instances = 0
         self._seq = count(1)
         self._subscribers: Set[ConnectedSubscriber[abc.MessageT]] = set()
+        self._condition = anyio.Condition()
 
     def clone(self) -> "abc.Publication[abc.MessageT]":
         return self
@@ -61,6 +62,13 @@ class Publication(abc.Publication[abc.MessageT]):
             for subscriber in self._subscribers:
                 await subscriber.stream.aclose()
             self._subscribers.clear()
+
+    async def wait_for_peers(self) -> None:
+        while True:
+            if self._subscribers:
+                return
+            async with self._condition:
+                await self._condition.wait()
 
     @property
     def topic_type(self) -> Type[abc.MessageT]:
@@ -97,11 +105,12 @@ class Publication(abc.Publication[abc.MessageT]):
         for subscriber in self._subscribers:
             subscriber.stream.send_nowait(data)
 
-    def _on_new_subscriber(
+    async def _on_new_subscriber(
         self,
         subscriber: ConnectedSubscriber[abc.MessageT],
     ) -> None:
-        pass
+        async with self._condition:
+            self._condition.notify_all()
 
     async def handle_tcpros(
         self,
@@ -127,7 +136,7 @@ class Publication(abc.Publication[abc.MessageT]):
                 send_stream,
             )
             self._subscribers.add(subscriber)
-            self._on_new_subscriber(subscriber)
+            await self._on_new_subscriber(subscriber)
             async for data in receive_stream:
                 try:
                     await client.send(data)
@@ -158,9 +167,10 @@ class LatchedPublication(Publication):
         self._latch = data
         super()._internal_publish(data)
 
-    def _on_new_subscriber(
+    async def _on_new_subscriber(
         self,
         subscriber: ConnectedSubscriber[abc.MessageT],
     ) -> None:
+        await super()._on_new_subscriber(subscriber)
         if self._latch is not None:
-            subscriber.stream.send_nowait(self._latch)
+            await subscriber.stream.send(self._latch)
