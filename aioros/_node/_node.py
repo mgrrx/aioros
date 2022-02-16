@@ -27,6 +27,7 @@ from .._utils._sockets import create_tcp_listener, create_unix_listener
 from ..abc._registry import Registry as AbstractRegistry
 from ..xmlrpc import XmlRpcTypes
 from ..xmlrpc import handle as handle_xmlrpc
+from ._action._client import ActionClient
 from ._api import MasterApiClient, NodeApiHandle
 from ._context import node
 from ._logging import RosoutLogger, init_logging, rosout_logger
@@ -283,6 +284,13 @@ class Node(abc.Node):
                 f"Publication was already created with latched={not latched}"
             )
         return publication
+
+    def create_action_client(
+        self,
+        namespace: str,
+        action: Type[abc.Action[abc.GoalT, abc.FeedbackT, abc.ResultT]],
+    ) -> abc.ActionClient[abc.GoalT, abc.FeedbackT, abc.ResultT]:
+        return ActionClient(self, self._task_group, namespace, action)
 
     def get_time(self) -> Time:
         return self._time or Time.from_sec(time.time())

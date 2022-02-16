@@ -5,6 +5,7 @@ from typing import Callable, Dict, Generic, List, Optional, Type
 from genpy.rostime import Time
 
 from ..xmlrpc._protocol._common import XmlRpcTypes
+from ._action import Action, ActionClient, FeedbackT, GoalT, ResultT
 from ._msg import MessageT, Service, ServiceRequestT, ServiceResponseT
 
 Header = Dict[str, str]
@@ -278,6 +279,14 @@ class Node(metaclass=ABCMeta):
     def create_publication(
         self, topic_name: str, topic_type: Type[MessageT], *, latched: bool = False
     ) -> Publication[MessageT]:
+        ...
+
+    @abstractmethod
+    def create_action_client(
+        self,
+        namespace: str,
+        action: Type[Action[GoalT, FeedbackT, ResultT]],
+    ) -> ActionClient[GoalT, FeedbackT, ResultT]:
         ...
 
     @abstractmethod
