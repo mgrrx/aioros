@@ -425,16 +425,19 @@ async def init_node(
             task_group.start_soon(
                 udsros_listener.serve, partial(ros_node.handle_tcpros, "UDSROS")
             )
+            async with anyio.create_task_group() as sub_task_group:
 
-            if initialize_time:
-                await task_group.start(ros_node.manage_time)
+                if initialize_time:
+                    await sub_task_group.start(ros_node.manage_time)
 
-            if configure_logging:
-                _rosout_logger = RosoutLogger()
-                task_group.start_soon(_rosout_logger.serve, ros_node)
-                logger_token = rosout_logger.set(_rosout_logger)
+                if configure_logging:
+                    _rosout_logger = RosoutLogger()
+                    sub_task_group.start_soon(_rosout_logger.serve, ros_node)
+                    logger_token = rosout_logger.set(_rosout_logger)
 
-            yield ros_node
+                yield ros_node
+
+                sub_task_group.cancel_scope.cancel()
 
             # Main terminated, clean up
             task_group.cancel_scope.cancel()
