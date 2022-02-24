@@ -27,6 +27,7 @@ from .._utils._sockets import create_tcp_listener, create_unix_listener
 from ..abc._registry import Registry as AbstractRegistry
 from ..xmlrpc import XmlRpcTypes
 from ..xmlrpc import handle as handle_xmlrpc
+from ._action._client import ActionClient
 from ._api import MasterApiClient, NodeApiHandle
 from ._context import node
 from ._logging import RosoutLogger, init_logging, rosout_logger
@@ -284,6 +285,13 @@ class Node(abc.Node):
             )
         return publication
 
+    def create_action_client(
+        self,
+        namespace: str,
+        action: Type[abc.Action[abc.GoalT, abc.FeedbackT, abc.ResultT]],
+    ) -> abc.ActionClient[abc.GoalT, abc.FeedbackT, abc.ResultT]:
+        return ActionClient(self, self._task_group, namespace, action)
+
     def get_time(self) -> Time:
         return self._time or Time.from_sec(time.time())
 
@@ -425,16 +433,19 @@ async def init_node(
             task_group.start_soon(
                 udsros_listener.serve, partial(ros_node.handle_tcpros, "UDSROS")
             )
+            async with anyio.create_task_group() as sub_task_group:
 
-            if initialize_time:
-                await task_group.start(ros_node.manage_time)
+                if initialize_time:
+                    await sub_task_group.start(ros_node.manage_time)
 
-            if configure_logging:
-                _rosout_logger = RosoutLogger()
-                task_group.start_soon(_rosout_logger.serve, ros_node)
-                logger_token = rosout_logger.set(_rosout_logger)
+                if configure_logging:
+                    _rosout_logger = RosoutLogger()
+                    sub_task_group.start_soon(_rosout_logger.serve, ros_node)
+                    logger_token = rosout_logger.set(_rosout_logger)
 
-            yield ros_node
+                yield ros_node
+
+                sub_task_group.cancel_scope.cancel()
 
             # Main terminated, clean up
             task_group.cancel_scope.cancel()

@@ -5,6 +5,7 @@ from typing import Callable, Dict, Generic, List, Optional, Type
 from genpy.rostime import Time
 
 from ..xmlrpc._protocol._common import XmlRpcTypes
+from ._action import Action, ActionClient, FeedbackT, GoalT, ResultT
 from ._msg import MessageT, Service, ServiceRequestT, ServiceResponseT
 
 Header = Dict[str, str]
@@ -92,6 +93,9 @@ class Subscription(Generic[MessageT], metaclass=ABCMeta):
     async def aclose(self) -> None:
         pass
 
+    def clone(self) -> "Subscription[MessageT]":
+        ...
+
     @property
     @abstractmethod
     def topic_name(self) -> str:
@@ -100,6 +104,10 @@ class Subscription(Generic[MessageT], metaclass=ABCMeta):
     @property
     @abstractmethod
     def topic_type(self) -> Type[MessageT]:
+        ...
+
+    @abstractmethod
+    async def wait_for_peers(self) -> None:
         ...
 
     def __aiter__(self) -> "Subscription[MessageT]":
@@ -125,6 +133,9 @@ class Publication(Generic[MessageT], metaclass=ABCMeta):
     async def aclose(self) -> None:
         pass
 
+    def clone(self) -> "Publication[MessageT]":
+        ...
+
     @property
     @abstractmethod
     def topic_name(self) -> str:
@@ -138,6 +149,10 @@ class Publication(Generic[MessageT], metaclass=ABCMeta):
     @property
     @abstractmethod
     def header(self) -> Header:
+        ...
+
+    @abstractmethod
+    async def wait_for_peers(self) -> None:
         ...
 
     @abstractmethod
@@ -264,6 +279,14 @@ class Node(metaclass=ABCMeta):
     def create_publication(
         self, topic_name: str, topic_type: Type[MessageT], *, latched: bool = False
     ) -> Publication[MessageT]:
+        ...
+
+    @abstractmethod
+    def create_action_client(
+        self,
+        namespace: str,
+        action: Type[Action[GoalT, FeedbackT, ResultT]],
+    ) -> ActionClient[GoalT, FeedbackT, ResultT]:
         ...
 
     @abstractmethod

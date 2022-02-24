@@ -119,5 +119,13 @@ def create_publication(
 
 
 @require_node
+def create_action_client(
+    namespace: str,
+    action: Type[abc.Action[abc.GoalT, abc.FeedbackT, abc.ResultT]],
+) -> abc.ActionClient[abc.GoalT, abc.FeedbackT, abc.ResultT]:
+    return node.get().create_action_client(namespace, action)
+
+
+@require_node
 def get_time() -> Time:
     return node.get().get_time()
