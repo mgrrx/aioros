@@ -9,10 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     container: debian:bookworm
     steps:
+      - run: mkdir -p catkin_ws/src
       - name: Checkout Project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          path: catkin_ws/src/aioros
       - run: apt update
       - name: Install dependencies
-        run: apt install -y python3-anyio python3-h11 python3-httpx python3-lxml python3-pytest python3-pytest-cov python3-pytest-mock python3-genpy python3-std-msgs python3-std-srvs python3-rosgraph-msgs python3-actionlib-msgs
-      - name: Run tests
-        run: PYTHONPATH=. pytest-3 -s --cov=aioros
+        run: apt install -y python3-anyio python3-h11 python3-httpx python3-lxml python3-pytest python3-pytest-cov python3-pytest-mock python3-genpy python3-std-msgs python3-std-srvs python3-rosgraph-msgs python3-actionlib-msgs catkin g++
+      - name: Build
+        run: |
+          cd catkin_ws
+          catkin_make
+          catkin_make run_tests
+          catkin_make install
+          catkin_test_results build/test_results
