@@ -1,6 +1,6 @@
 from contextvars import ContextVar
 from functools import wraps
-from typing import Any, Callable, List, Type, TypeVar
+from typing import Any, Awaitable, Callable, List, Type, TypeVar
 
 from genpy.rostime import Time
 
@@ -89,7 +89,7 @@ async def get_param_names() -> List[str]:
 def create_server(
     service_name: str,
     service_type: Type[abc.Service[abc.ServiceRequestT, abc.ServiceResponseT]],
-    handler: Callable[[abc.ServiceRequestT], abc.ServiceResponseT],
+    handler: Callable[[abc.ServiceRequestT], Awaitable[abc.ServiceResponseT]],
 ) -> abc.ServiceServer[abc.ServiceRequestT, abc.ServiceResponseT]:
     return node.get().create_server(service_name, service_type, handler)
 

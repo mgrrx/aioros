@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Type
+from typing import Awaitable, Callable, Type
 
 import anyio
 from anyio.abc import SocketStream
@@ -18,7 +18,7 @@ class ServiceServer(abc.ServiceServer[abc.ServiceRequestT, abc.ServiceResponseT]
         self,
         service_name: str,
         service_type: Type[abc.Service[abc.ServiceRequestT, abc.ServiceResponseT]],
-        handler: Callable[[abc.ServiceRequestT], abc.ServiceResponseT],
+        handler: Callable[[abc.ServiceRequestT], Awaitable[abc.ServiceResponseT]],
         master: MasterApiClient,
         node_name: str,
     ) -> None:
