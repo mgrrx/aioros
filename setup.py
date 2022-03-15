@@ -9,6 +9,7 @@ setup(
         packages=[
             "aioros",
             "aioros._node",
+            "aioros._node._action",
             "aioros._node._tcpros",
             "aioros._utils",
             "aioros.abc",
