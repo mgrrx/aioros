@@ -1,6 +1,5 @@
 import logging
 import signal
-import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from functools import partial
@@ -10,8 +9,7 @@ from typing import AsyncIterator, Awaitable, Callable, Dict, List, Optional, Tup
 import anyio
 from anyio.abc import SocketStream, TaskGroup, TaskStatus
 from anyio.streams.buffered import BufferedByteReceiveStream
-from genpy.rostime import Time
-from rosgraph_msgs.msg import Clock
+from genpy.rostime import Duration, Time
 
 from .. import abc
 from .._utils._resolve import (
@@ -38,6 +36,7 @@ from ._tcpros._service_server import ServiceServer
 from ._tcpros._topic_publisher import LatchedPublication, Publication
 from ._tcpros._topic_subscriber import Subscription, SubscriptionManager
 from ._tcpros._utils import ProtocolError
+from ._time import SimTimeManager, TimeManager, WallTimeManager
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +136,7 @@ class Node(abc.Node):
         self._param_cache = param_cache
         self._master = MasterApiClient(master_uri, self)
         self._remapping = remapping
-        self._time: Optional[Time] = None
+        self._time_manager: TimeManager = WallTimeManager()
 
     async def __aenter__(self) -> abc.Node:
         await self._master.__aenter__()
@@ -294,20 +293,29 @@ class Node(abc.Node):
         return ActionClient(self, self._task_group, namespace, action)
 
     def get_time(self) -> Time:
-        return self._time or Time.from_sec(time.time())
+        return self._time_manager.get_time()
 
-    async def manage_time(
-        self, *, task_status: TaskStatus = anyio.TASK_STATUS_IGNORED
-    ) -> None:
-        use_sim_time = await self.get_param_default("/use_sim_time", False)
-        if not use_sim_time:
-            task_status.started()
-        else:
-            self._time = Time(0, 0)
-            task_status.started()
-            async with self.create_subscription("/clock", Clock) as subscription:
-                async for clock in subscription:
-                    self._time = clock.clock
+    async def sleep(self, duration: Duration) -> None:
+        await self._time_manager.sleep(duration)
+
+    async def every(self, duration: Duration) -> AsyncIterator[Time]:
+        start = self.get_time()
+        while True:
+            now = self.get_time()
+            yield now
+            end = self.get_time()
+            elapsed = end - start
+            if elapsed > duration:
+                # loop is too slow
+                start = end
+            else:
+                start = end + duration - elapsed
+                await self.sleep(duration - elapsed)
+
+    async def init_time(self) -> None:
+        if await self.get_param_default("/use_sim_time", False):
+            self._time_manager = SimTimeManager()
+            await self._task_group.start(self._time_manager.run, self)
 
 
 async def handle_tcpros(
@@ -438,7 +446,7 @@ async def init_node(
             async with anyio.create_task_group() as sub_task_group:
 
                 if initialize_time:
-                    await sub_task_group.start(ros_node.manage_time)
+                    await ros_node.init_time()
 
                 if configure_logging:
                     _rosout_logger = RosoutLogger()

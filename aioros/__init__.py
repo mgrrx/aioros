@@ -10,6 +10,7 @@ __all__ = (
     "create_server",
     "create_subscription",
     "delete_param",
+    "every",
     "get_param",
     "get_param_cached",
     "get_param_default",
@@ -26,6 +27,7 @@ __all__ = (
     "node_name",
     "search_param",
     "set_param",
+    "sleep",
 )
 
 import logging
@@ -39,6 +41,7 @@ from ._node._context import (
     create_server,
     create_subscription,
     delete_param,
+    every,
     get_param,
     get_param_cached,
     get_param_default,
@@ -49,6 +52,7 @@ from ._node._context import (
     node_name,
     search_param,
     set_param,
+    sleep,
 )
 from ._node._logging import logdebug, logerr, logfatal, loginfo, logwarn
 from ._node._node import init_node

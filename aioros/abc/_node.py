@@ -1,8 +1,17 @@
 from abc import ABCMeta, abstractmethod
 from types import TracebackType
-from typing import Awaitable, Callable, Dict, Generic, List, Optional, Type
+from typing import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Type,
+)
 
-from genpy.rostime import Time
+from genpy.rostime import Duration, Time
 
 from ..xmlrpc._protocol._common import XmlRpcTypes
 from ._action import Action, ActionClient, FeedbackT, GoalT, ResultT
@@ -291,4 +300,12 @@ class Node(metaclass=ABCMeta):
 
     @abstractmethod
     def get_time(self) -> Time:
+        ...
+
+    @abstractmethod
+    async def sleep(self, duration: Duration) -> None:
+        ...
+
+    @abstractmethod
+    async def every(self, duration: Duration) -> AsyncIterator[Time]:
         ...
