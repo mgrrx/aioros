@@ -132,6 +132,18 @@ def create_action_client(
 
 
 @require_node
+def create_action_server(
+    namespace: str,
+    action: Type[abc.Action[abc.GoalT, abc.FeedbackT, abc.ResultT]],
+    handler: Callable[
+        [abc.ActionServerGoalHandle[abc.GoalT]],
+        Awaitable[Optional[abc.ResultT]],
+    ],
+) -> abc.ActionServer[abc.GoalT, abc.FeedbackT, abc.ResultT]:
+    return node.get().create_action_server(namespace, action, handler)
+
+
+@require_node
 def get_time() -> Time:
     return node.get().get_time()
 

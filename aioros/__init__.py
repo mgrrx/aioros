@@ -6,6 +6,7 @@ __all__ = (
     "UninitializedNodeError",
     "XMLRPCError",
     "create_action_client",
+    "create_action_server",
     "create_client",
     "create_publication",
     "create_server",
@@ -38,6 +39,7 @@ from ._node._api import XMLRPCError
 from ._node._context import (
     UninitializedNodeError,
     create_action_client,
+    create_action_server,
     create_client,
     create_publication,
     create_server,

@@ -14,7 +14,15 @@ from typing import (
 from genpy import Duration, Time
 
 from ..xmlrpc._protocol._common import XmlRpcTypes
-from ._action import Action, ActionClient, FeedbackT, GoalT, ResultT
+from ._action import (
+    Action,
+    ActionClient,
+    ActionServer,
+    ActionServerGoalHandle,
+    FeedbackT,
+    GoalT,
+    ResultT,
+)
 from ._msg import MessageT, Service, ServiceRequestT, ServiceResponseT
 
 Header = Dict[str, str]
@@ -300,6 +308,18 @@ class Node(metaclass=ABCMeta):
         namespace: str,
         action: Type[Action[GoalT, FeedbackT, ResultT]],
     ) -> ActionClient[GoalT, FeedbackT, ResultT]:
+        ...
+
+    @abstractmethod
+    def create_action_server(
+        self,
+        namespace: str,
+        action: Type[Action[GoalT, FeedbackT, ResultT]],
+        handler: Callable[
+            [ActionServerGoalHandle[GoalT]],
+            Awaitable[Optional[ResultT]],
+        ],
+    ) -> ActionServer[GoalT, FeedbackT, ResultT]:
         ...
 
     @abstractmethod

@@ -26,6 +26,7 @@ from ..abc._registry import Registry as AbstractRegistry
 from ..xmlrpc import XmlRpcTypes
 from ..xmlrpc import handle as handle_xmlrpc
 from ._action._client import ActionClient
+from ._action._server import ActionServer
 from ._api import MasterApiClient, NodeApiHandle
 from ._context import node
 from ._logging import RosoutLogger, init_logging, rosout_logger
@@ -289,6 +290,18 @@ class Node(abc.Node):
     ) -> abc.ActionClient[abc.GoalT, abc.FeedbackT, abc.ResultT]:
         namespace = self.resolve_name(namespace)
         return ActionClient(self, self._task_group, namespace, action)
+
+    def create_action_server(
+        self,
+        namespace: str,
+        action: Type[abc.Action[abc.GoalT, abc.FeedbackT, abc.ResultT]],
+        handler: Callable[
+            [abc.ActionServerGoalHandle[abc.GoalT]],
+            Awaitable[None],
+        ],
+    ) -> abc.ActionServer[abc.GoalT, abc.FeedbackT, abc.ResultT]:
+        namespace = self._resolve_name(namespace)
+        return ActionServer(self, namespace, action, handler)
 
     def get_time(self) -> Time:
         return self._time_manager.get_time()
