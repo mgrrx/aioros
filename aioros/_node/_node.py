@@ -290,6 +290,7 @@ class Node(abc.Node):
         namespace: str,
         action: Type[abc.Action[abc.GoalT, abc.FeedbackT, abc.ResultT]],
     ) -> abc.ActionClient[abc.GoalT, abc.FeedbackT, abc.ResultT]:
+        namespace = self._resolve_name(namespace)
         return ActionClient(self, self._task_group, namespace, action)
 
     def get_time(self) -> Time:
