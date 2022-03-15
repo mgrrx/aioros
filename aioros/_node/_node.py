@@ -296,41 +296,6 @@ class Node(abc.Node):
     def get_time(self) -> Time:
         return self._time or Time.from_sec(time.time())
 
-    async def handle_tcpros(self, protocol: str, client: SocketStream) -> None:
-        async with client:
-            buffered_receiver = BufferedByteReceiveStream(client)
-            try:
-                header = await read_header(buffered_receiver)
-                try:
-                    if "service" in header:
-                        handler_getter = self._registry.get_service_handler
-                        key = "service"
-                    elif "topic" in header:
-                        handler_getter = self._registry.get_publication_handler
-                        key = "topic"
-                    else:
-                        await client.send(
-                            encode_header(
-                                dict(error="no topic or service name detected")
-                            )
-                        )
-                        return
-
-                    try:
-                        handler = handler_getter(header[key])
-                    except KeyError as exc:
-                        raise ProtocolError(
-                            f"{key} {header[key]} is not provided by this node"
-                        ) from exc
-                    else:
-                        await handler(protocol, header, client)
-                except ProtocolError as err:
-                    await client.send(encode_header(dict(error=err.args[0])))
-            except anyio.IncompleteRead:
-                # Raised if the connection is closed before the requested amount of
-                # bytes has been read.
-                pass
-
     async def manage_time(
         self, *, task_status: TaskStatus = anyio.TASK_STATUS_IGNORED
     ) -> None:
@@ -343,6 +308,42 @@ class Node(abc.Node):
             async with self.create_subscription("/clock", Clock) as subscription:
                 async for clock in subscription:
                     self._time = clock.clock
+
+
+async def handle_tcpros(
+    registry: Registry, protocol: str, client: SocketStream
+) -> None:
+    async with client:
+        buffered_receiver = BufferedByteReceiveStream(client)
+        try:
+            header = await read_header(buffered_receiver)
+            try:
+                if "service" in header:
+                    handler_getter = registry.get_service_handler
+                    key = "service"
+                elif "topic" in header:
+                    handler_getter = registry.get_publication_handler
+                    key = "topic"
+                else:
+                    await client.send(
+                        encode_header(dict(error="no topic or service name detected"))
+                    )
+                    return
+
+                try:
+                    handler = handler_getter(header[key])
+                except KeyError as exc:
+                    raise ProtocolError(
+                        f"{key} {header[key]} is not provided by this node"
+                    ) from exc
+                else:
+                    await handler(protocol, header, client)
+            except ProtocolError as err:
+                await client.send(encode_header(dict(error=err.args[0])))
+        except anyio.IncompleteRead:
+            # Raised if the connection is closed before the requested amount of
+            # bytes has been read.
+            pass
 
 
 async def _signal_handler(
@@ -429,10 +430,10 @@ async def init_node(
                 partial(handle_xmlrpc, NodeApiHandle(ros_node, registry, param_cache)),
             )
             task_group.start_soon(
-                tcpros_listener.serve, partial(ros_node.handle_tcpros, "TCPROS")
+                tcpros_listener.serve, partial(handle_tcpros, registry, "TCPROS")
             )
             task_group.start_soon(
-                udsros_listener.serve, partial(ros_node.handle_tcpros, "UDSROS")
+                udsros_listener.serve, partial(handle_tcpros, registry, "UDSROS")
             )
             async with anyio.create_task_group() as sub_task_group:
 
