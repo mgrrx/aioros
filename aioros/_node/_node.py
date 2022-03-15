@@ -233,7 +233,7 @@ class Node(abc.Node):
         self,
         service_name: str,
         service_type: Type[abc.Service[abc.ServiceRequestT, abc.ServiceResponseT]],
-        handler: Callable[[abc.ServiceRequestT], abc.ServiceResponseT],
+        handler: Callable[[abc.ServiceRequestT], Awaitable[abc.ServiceResponseT]],
     ) -> abc.ServiceServer[abc.ServiceRequestT, abc.ServiceResponseT]:
         service_name = self._resolve_name(service_name)
         if service_name in self._registry.services:

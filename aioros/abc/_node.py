@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from types import TracebackType
-from typing import Callable, Dict, Generic, List, Optional, Type
+from typing import Awaitable, Callable, Dict, Generic, List, Optional, Type
 
 from genpy.rostime import Time
 
@@ -255,7 +255,7 @@ class Node(metaclass=ABCMeta):
         self,
         service_name: str,
         service_type: Type[Service[ServiceRequestT, ServiceResponseT]],
-        handler: Callable[[ServiceRequestT], ServiceResponseT],
+        handler: Callable[[ServiceRequestT], Awaitable[ServiceResponseT]],
     ) -> ServiceServer[ServiceRequestT, ServiceResponseT]:
         ...
 
