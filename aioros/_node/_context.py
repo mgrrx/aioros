@@ -1,6 +1,15 @@
 from contextvars import ContextVar
 from functools import wraps
-from typing import Any, AsyncIterator, Awaitable, Callable, List, Type, TypeVar
+from typing import (
+    Any,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+)
 
 from genpy import Duration, Time
 
