@@ -1,33 +1,51 @@
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum, unique
-from typing import AsyncIterator, FrozenSet, Generic, Optional, Protocol, TypeVar
+from types import TracebackType
+from typing import AsyncIterator, FrozenSet, Generic, Optional, Protocol, Type, TypeVar
 
 from actionlib_msgs.msg import GoalID, GoalStatus
-from anyio.abc import AsyncResource
-from genpy import Message, Time
+from genpy.message import Time
 from std_msgs.msg import Header
+
+from ._msg import Message, MessageWithHeader
 
 GoalT = TypeVar("GoalT", bound=Message)
 FeedbackT = TypeVar("FeedbackT", bound=Message)
 ResultT = TypeVar("ResultT", bound=Message)
 
 
-class ActionGoal(Protocol[GoalT]):
-    header: Header
-    goal_id: GoalID
+class HasGoal(Protocol[GoalT]):
     goal: GoalT
 
 
-class ActionResult(Protocol[ResultT]):
-    header: Header
-    status: GoalStatus
+class ActionGoal(HasGoal[GoalT], MessageWithHeader, metaclass=ABCMeta):
+    goal_id: GoalID
+    goal: GoalT
+
+    # pylint: disable=super-init-not-called
+    def __init__(
+        self,
+        header: Optional[Header] = None,
+        goal_id: Optional[GoalID] = None,
+        goal: Optional[GoalT] = None,
+    ) -> None:
+        ...
+
+
+class HasResult(Protocol[ResultT]):
     result: ResultT
 
 
-class ActionFeedback(Protocol[FeedbackT]):
-    header: Header
+class ActionResult(HasResult[ResultT], MessageWithHeader, metaclass=ABCMeta):
     status: GoalStatus
+
+
+class HasFeedback(Protocol[FeedbackT]):
     feedback: FeedbackT
+
+
+class ActionFeedback(HasFeedback[FeedbackT], MessageWithHeader, metaclass=ABCMeta):
+    status: GoalStatus
 
 
 class Action(Protocol[GoalT, FeedbackT, ResultT]):
@@ -110,9 +128,23 @@ class ActionCall(Generic[FeedbackT, ResultT], metaclass=ABCMeta):
         ...
 
 
-class ActionClient(
-    AsyncResource, Generic[GoalT, FeedbackT, ResultT], metaclass=ABCMeta
-):
+class ActionClient(Generic[GoalT, FeedbackT, ResultT], metaclass=ABCMeta):
+    @abstractmethod
+    async def __aenter__(self) -> "ActionClient[GoalT, FeedbackT, ResultT]":
+        ...
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        await self.aclose()
+
+    @abstractmethod
+    async def aclose(self) -> None:
+        ...
+
     @abstractmethod
     async def send_goal(self, goal: GoalT) -> ActionCall[FeedbackT, ResultT]:
         ...

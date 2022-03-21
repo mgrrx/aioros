@@ -16,6 +16,7 @@ class ActionCall(abc.ActionCall[abc.FeedbackT, abc.ResultT]):
     def __init__(
         self,
         pub_cancel: abc.Publication[GoalID],
+        feedback_type: Type[abc.FeedbackT],
         goal_id: GoalID,
     ) -> None:
         self._pub_cancel = pub_cancel
@@ -26,7 +27,7 @@ class ActionCall(abc.ActionCall[abc.FeedbackT, abc.ResultT]):
         (
             self._feedback_send_stream,
             self._feedback_receive_stream,
-        ) = anyio.create_memory_object_stream(float("inf"), abc.FeedbackT)
+        ) = anyio.create_memory_object_stream(float("inf"), feedback_type)
 
     async def track(
         self,
@@ -163,6 +164,7 @@ class ActionClient(abc.ActionClient[abc.GoalT, abc.FeedbackT, abc.ResultT]):
         )
         call: ActionCall[abc.FeedbackT, abc.ResultT] = ActionCall(
             self._pub_cancel.clone(),
+            type(self._sub_feedback.topic_type().feedback),
             goal_id,
         )
         await self._task_group.start(

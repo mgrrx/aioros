@@ -29,7 +29,7 @@ class Serializer(Generic[abc.MessageT]):
         self._seq = count(1)
 
     def serialize(self, msg: abc.MessageT) -> bytes:
-        if getattr(msg.__class__, "_has_header", False):
+        if isinstance(msg, abc.MessageWithHeader):
             if msg.header.seq is None:
                 msg.header.seq = next(self._seq)
             if msg.header.frame_id is None:

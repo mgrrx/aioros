@@ -43,6 +43,12 @@ class ParamCache:
         key = join(*split(key))
         self._params[key] = value
 
+    def delete(self, key: str) -> None:
+        key = join(*split(key))
+        for namespace in iter_namespaces(key):
+            if namespace in self._params:
+                self._delete_cache(namespace, key[len(namespace) :])
+
     def update(self, key: str, value: XmlRpcTypes) -> None:
         key = join(*split(key))
         for namespace in iter_namespaces(key):
@@ -65,3 +71,19 @@ class ParamCache:
                     cache = cache[part]
         else:
             self._params[namespace] = value
+
+    def _delete_cache(self, namespace: str, key: str) -> None:
+        splitted = list(split(key))
+        if not splitted:
+            return
+
+        cache = self._params[namespace]
+        for i, part in enumerate(splitted):
+            if not isinstance(cache, dict):
+                raise KeyError(join(namespace, key))
+            if i + 1 == len(splitted):
+                del cache[part]
+            elif part not in cache:
+                return
+            else:
+                cache = cache[part]
