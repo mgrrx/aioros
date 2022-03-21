@@ -186,9 +186,7 @@ class Node(abc.Node):
         if key in self._param_cache:
             return self._param_cache[key]
 
-        value = await self._master.get_param(key)
-        self._param_cache.update(key, value)
-        return value
+        return await self._master.get_param(key)
 
     async def get_param_cached(self, key: str) -> XmlRpcTypes:
         key = self._resolve_name(key)
