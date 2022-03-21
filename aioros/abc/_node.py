@@ -306,6 +306,7 @@ class Node(metaclass=ABCMeta):
     async def sleep(self, duration: Duration) -> None:
         ...
 
+    # we have to omit asnyc here, see https://github.com/python/mypy/issues/10301
     @abstractmethod
-    async def every(self, duration: Duration) -> AsyncIterator[Time]:
+    def every(self, duration: Duration) -> AsyncIterator[Time]:
         ...
