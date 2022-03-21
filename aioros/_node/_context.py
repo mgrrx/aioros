@@ -1,8 +1,8 @@
 from contextvars import ContextVar
 from functools import wraps
-from typing import Any, Awaitable, Callable, List, Type, TypeVar
+from typing import Any, AsyncIterator, Awaitable, Callable, List, Type, TypeVar
 
-from genpy.rostime import Time
+from genpy.rostime import Duration, Time
 
 from .. import abc
 from ..xmlrpc import XmlRpcTypes
@@ -129,3 +129,14 @@ def create_action_client(
 @require_node
 def get_time() -> Time:
     return node.get().get_time()
+
+
+@require_node
+async def sleep(duration: Duration) -> None:
+    await node.get().sleep(duration)
+
+
+@require_node
+async def every(duration: Duration) -> AsyncIterator[Time]:
+    async for time in node.get().every(duration):
+        yield time

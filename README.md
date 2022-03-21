@@ -148,7 +148,7 @@ async def test_pubsub() -> None:
 
 ## TODO
 - [ ] Expose buffer sizes of publisher and subscriber
-- [ ] Rate and Timer
+- [X] Rate and Timer
 - [ ] More tests
 - [ ] Documentation
 - [ ] actionlib client
