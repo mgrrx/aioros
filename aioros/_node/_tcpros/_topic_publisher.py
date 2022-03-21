@@ -95,7 +95,7 @@ class Publication(abc.Publication[abc.MessageT]):
     async def publish(self, message: abc.MessageT) -> None:
         if not self._message_serialization_needed():
             return
-        if getattr(message.__class__, "_has_header", False):
+        if isinstance(message, abc.MessageWithHeader):
             if message.header.seq is None:
                 message.header.seq = next(self._seq)
         data = await anyio.to_thread.run_sync(serialize, message)

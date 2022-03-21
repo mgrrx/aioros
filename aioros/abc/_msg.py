@@ -1,11 +1,43 @@
+from abc import ABCMeta, abstractmethod
 from io import BytesIO
-from typing import Optional, Protocol, Type, TypeVar
+from typing import List, Optional, Protocol, Type, TypeVar, runtime_checkable
 
-from genpy import Message
+from std_msgs.msg import Header
 
+
+class Message(Protocol):
+    _md5sum: str
+    _type: str
+    _has_header: bool
+    _full_text: str
+    _slot_types = List[str]
+
+    @abstractmethod
+    def _get_types(self) -> List[str]:
+        ...
+
+    @abstractmethod
+    def _check_types(self, exc: Optional[Exception] = None) -> None:
+        pass
+
+    @abstractmethod
+    def serialize(self, buff: BytesIO) -> None:
+        ...
+
+    @abstractmethod
+    def deserialize(self, str_: bytes) -> None:
+        ...
+
+
+@runtime_checkable
+class MessageWithHeader(Message, Protocol, metaclass=ABCMeta):
+    header: Header
+
+
+MessageT = TypeVar("MessageT", bound=Message)
+MessageWithHeaderT = TypeVar("MessageWithHeaderT", bound=MessageWithHeader)
 ServiceRequestT = TypeVar("ServiceRequestT", bound=Message)
 ServiceResponseT = TypeVar("ServiceResponseT", bound=Message)
-MessageT = TypeVar("MessageT", bound=Message)
 
 
 class Service(Protocol[ServiceRequestT, ServiceResponseT]):
@@ -13,29 +45,3 @@ class Service(Protocol[ServiceRequestT, ServiceResponseT]):
     _md5sum: str
     _request_class: Type[ServiceRequestT]
     _response_class: Type[ServiceResponseT]
-
-
-class AnyMsg(Message):
-    """
-    Message class to use for subscribing to any topic regardless
-    of type. Incoming messages are not deserialized. Instead, the raw
-    serialized data can be accssed via the buff property.
-    """
-
-    _md5sum: str = "*"
-    _type: str = "*"
-    _has_header: bool = False
-    _full_text: str = ""
-    __slots__ = ["_buff"]
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._buff: Optional[bytes] = None
-
-    def serialize(self, buff: BytesIO) -> None:
-        if self._buff is None:
-            raise RuntimeError
-        buff.write(self._buff)
-
-    def deserialize(self, str_: bytes) -> None:
-        self._buff = str_

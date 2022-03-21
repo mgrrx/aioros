@@ -10,7 +10,10 @@ __all__ = (
     "GoalState",
     "GoalT",
     "Header",
+    "Message",
     "MessageT",
+    "MessageWithHeader",
+    "MessageWithHeaderT",
     "Node",
     "Publication",
     "Remapping",
@@ -36,7 +39,15 @@ from ._action import (
     GoalT,
     ResultT,
 )
-from ._msg import MessageT, Service, ServiceRequestT, ServiceResponseT
+from ._msg import (
+    Message,
+    MessageT,
+    MessageWithHeader,
+    MessageWithHeaderT,
+    Service,
+    ServiceRequestT,
+    ServiceResponseT,
+)
 from ._naming import Remapping
 from ._node import Header, Node, Publication, ServiceClient, ServiceServer, Subscription
 
