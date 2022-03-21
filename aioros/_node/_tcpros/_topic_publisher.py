@@ -130,7 +130,7 @@ class Publication(abc.Publication[abc.MessageT]):
         send_stream, receive_stream = anyio.create_memory_object_stream(math.inf, bytes)
 
         async with receive_stream:
-            subscriber = ConnectedSubscriber(
+            subscriber: ConnectedSubscriber[abc.MessageT] = ConnectedSubscriber(
                 protocol,
                 header["callerid"],
                 send_stream,
@@ -145,7 +145,7 @@ class Publication(abc.Publication[abc.MessageT]):
             self._subscribers.discard(subscriber)
 
 
-class LatchedPublication(Publication):
+class LatchedPublication(Publication[abc.MessageT]):
     def __init__(
         self,
         topic_name: str,
