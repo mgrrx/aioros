@@ -5,6 +5,7 @@ from typing import List, Optional, Protocol, Type, TypeVar, runtime_checkable
 from std_msgs.msg import Header
 
 
+@runtime_checkable
 class Message(Protocol):
     _md5sum: str
     _type: str
