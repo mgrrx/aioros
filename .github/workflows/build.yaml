@@ -16,13 +16,14 @@ jobs:
           path: catkin_ws/src/aioros
       - run: apt update
       - name: Install dependencies
-        run: apt install -y catkin g++ python3-rosdep2 python3-anyio python3-h11 python3-httpx
+        run: apt install -y catkin-tools g++ python3-rosdep2 python3-anyio python3-h11 python3-httpx
       - name: Build
         run: |
           cd catkin_ws
           rosdep update
           rosdep install --from-paths src -y --skip-keys "python3-anyio python3-h11 python3-httpx"
-          catkin_make
-          catkin_make run_tests
-          catkin_make install
-          catkin_test_results build/test_results
+          catkin init
+          catkin config --install
+          catkin build
+          . install/setup.sh
+          pytest-3 src/aioros/tests
