@@ -1,4 +1,3 @@
-import math
 from dataclasses import dataclass
 from itertools import count
 from typing import Generic, Optional, Set, Type
@@ -127,7 +126,9 @@ class Publication(abc.Publication[abc.MessageT]):
         await client.send(encode_header(self.header))
 
         # TODO fix capacity
-        send_stream, receive_stream = anyio.create_memory_object_stream(math.inf, bytes)
+        send_stream, receive_stream = anyio.create_memory_object_stream(
+            float("inf"), bytes
+        )
 
         async with receive_stream:
             subscriber: ConnectedSubscriber[abc.MessageT] = ConnectedSubscriber(

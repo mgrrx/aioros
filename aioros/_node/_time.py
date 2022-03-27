@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 
 import anyio
 from anyio.abc import TaskStatus
-from genpy.rostime import Duration, Time
+from genpy import Duration, Time
 from rosgraph_msgs.msg import Clock
 
 from .. import abc

@@ -9,7 +9,7 @@ from typing import AsyncIterator, Awaitable, Callable, Dict, List, Optional, Tup
 import anyio
 from anyio.abc import SocketStream, TaskGroup, TaskStatus
 from anyio.streams.buffered import BufferedByteReceiveStream
-from genpy.rostime import Duration, Time
+from genpy import Duration, Time
 
 from .. import abc
 from .._utils._resolve import (

@@ -11,7 +11,7 @@ from typing import (
     Type,
 )
 
-from genpy.rostime import Duration, Time
+from genpy import Duration, Time
 
 from ..xmlrpc._protocol._common import XmlRpcTypes
 from ._action import Action, ActionClient, FeedbackT, GoalT, ResultT

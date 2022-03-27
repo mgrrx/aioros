@@ -3,7 +3,6 @@
 import logging
 
 import anyio
-from genpy.rostime import Time
 from rosgraph_msgs.msg import Clock
 
 import aioros

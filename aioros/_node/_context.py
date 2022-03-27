@@ -2,7 +2,7 @@ from contextvars import ContextVar
 from functools import wraps
 from typing import Any, AsyncIterator, Awaitable, Callable, List, Type, TypeVar
 
-from genpy.rostime import Duration, Time
+from genpy import Duration, Time
 
 from .. import abc
 from ..xmlrpc import XmlRpcTypes

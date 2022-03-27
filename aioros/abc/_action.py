@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import AsyncIterator, FrozenSet, Generic, Optional, Protocol, Type, TypeVar
 
 from actionlib_msgs.msg import GoalID, GoalStatus
-from genpy.message import Time
+from genpy import Time
 from std_msgs.msg import Header
 
 from ._msg import Message, MessageWithHeader

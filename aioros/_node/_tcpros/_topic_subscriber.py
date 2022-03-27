@@ -1,5 +1,4 @@
 import logging
-import math
 from dataclasses import dataclass, field
 from itertools import count
 from typing import Any, Dict, Generic, Iterator, List, Optional, Set, Tuple, Type, cast
@@ -172,7 +171,7 @@ class Subscription(abc.Subscription[abc.MessageT]):
     ) -> None:
         self._subscription_manager = subscription_manager
         self._send_stream, self._receive_stream = anyio.create_memory_object_stream(
-            math.inf, subscription_manager.topic_type
+            float("inf"), subscription_manager.topic_type
         )
 
     def clone(self) -> "abc.Subscription[abc.MessageT]":

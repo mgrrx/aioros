@@ -3,7 +3,7 @@
 import logging
 
 import anyio
-from genpy.rostime import Duration
+from genpy import Duration
 
 import aioros
 
