@@ -146,6 +146,7 @@ class SubscriptionManager(Generic[abc.MessageT]):
 
                     while not publisher.cancel_scope.cancel_called:
                         msg = self.topic_type()
+                        msg._connection_header = header_dict
                         msg.deserialize(await read_data(buffered_client))
                         for stream in self.subscriptions:
                             stream.send_nowait(msg)
