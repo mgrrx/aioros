@@ -6,6 +6,12 @@ find_package(catkin REQUIRED)
 catkin_python_setup()
 catkin_package()
 
+catkin_install_python(
+    PROGRAMS
+     scripts/master
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 if (CATKIN_ENABLE_TESTING)
   find_program(PYTESTS NAMES
     "py.test${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}"
