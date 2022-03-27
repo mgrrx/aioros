@@ -14,6 +14,7 @@ setup(
             "aioros._utils",
             "aioros.abc",
             "aioros.master",
+            "aioros.tf2",
             "aioros.xmlrpc",
             "aioros.xmlrpc._protocol",
         ],

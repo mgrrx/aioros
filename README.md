@@ -151,7 +151,7 @@ async def test_pubsub() -> None:
 - [X] Rate and Timer
 - [ ] More tests
 - [ ] Documentation
-- [ ] actionlib client
+- [X] actionlib client
 - [ ] actionlib server
-- [ ] tf2 buffer client
-- [ ] tf2 buffer support via own pybind11 wrapper due to https://github.com/ros/geometry2/blob/noetic-devel/tf2_py/src/tf2_py.cpp#L98-L102)
+- [X] tf2 buffer client
+- [X] tf2 buffer support via own pybind11 wrapper due to https://github.com/ros/geometry2/blob/noetic-devel/tf2_py/src/tf2_py.cpp#L98-L102)

@@ -1,10 +1,39 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(aioros)
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS tf2)
+find_package(pybind11 CONFIG REQUIRED)
 
 catkin_python_setup()
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS tf2
+)
+
+include_directories(${catkin_INCLUDE_DIRS})
+add_library(aioros_tf2_buffer MODULE aioros/tf2/buffer_core.cpp)
+target_link_libraries(aioros_tf2_buffer PUBLIC pybind11::module ${catkin_LIBRARIES})
+add_dependencies(aioros_tf2_buffer ${catkin_EXPORTED_TARGETS})
+set_target_properties(aioros_tf2_buffer PROPERTIES
+  OUTPUT_NAME buffer_core PREFIX "_"
+  ARCHIVE_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}
+  LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}
+  RUNTIME_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}
+)
+
+add_library(aioros_tf2_linear_math MODULE aioros/tf2/linear_math.cpp)
+target_link_libraries(aioros_tf2_linear_math PUBLIC pybind11::module ${catkin_LIBRARIES})
+add_dependencies(aioros_tf2_linear_math ${catkin_EXPORTED_TARGETS})
+set_target_properties(aioros_tf2_linear_math PROPERTIES
+  OUTPUT_NAME linear_math PREFIX "_"
+  ARCHIVE_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}
+  LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}
+  RUNTIME_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}
+)
+
+install(
+  FILES $<TARGET_FILE:aioros_tf2_buffer> $<TARGET_FILE:aioros_tf2_linear_math>
+  DESTINATION ${CATKIN_PACKAGE_PYTHON_DESTINATION}/tf2/
+)
 
 catkin_install_python(
     PROGRAMS
