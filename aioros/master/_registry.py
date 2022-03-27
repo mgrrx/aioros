@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Callable, Coroutine, Dict, Iterator, List, NamedTuple, Set
+from typing import Any, Callable, Coroutine, Dict, Iterator, List, NamedTuple, Set, cast
 
 import httpx
 from anyio import create_memory_object_stream
@@ -268,10 +268,11 @@ class Registry:
                 continue
 
             sub_key = key[len(param_key) :]
-            value = param_value
+            param_dict = cast(Dict[str, XmlRpcTypes], param_value)
+
             for ns in split(sub_key):
-                value = value[ns]
+                param_dict = cast(Dict[str, XmlRpcTypes], param_dict[ns])
 
             for registration in self.param_subscribers[key]:
                 node = self.nodes[registration.caller_id]
-                node.param_update(key[:-1], value)
+                node.param_update(key[:-1], param_dict)
