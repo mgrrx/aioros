@@ -20,6 +20,7 @@ setup(
         ],
         package_data={
             "aioros": ["py.typed"],
+            "aioros.tf2": ["_buffer_core.pyi", "_linear_math.pyi"],
             "aioros.xmlrpc._protocol": ["xmlrpc.rng"],
         },
     )
