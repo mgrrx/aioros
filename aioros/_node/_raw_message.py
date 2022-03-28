@@ -15,16 +15,22 @@ class RawMessage(Message):
     _type: str = "*"
     _has_header: bool = False
     _full_text: str = ""
-    __slots__ = ["raw"]
+    __slots__ = ["_raw"]
 
     def __init__(self) -> None:
         super().__init__()
-        self.raw: Optional[bytes] = None
+        self._raw: Optional[bytes] = None
 
     def serialize(self, buff: BytesIO) -> None:
-        if self.raw is None:
-            raise RuntimeError
+        if self._raw is None:
+            raise RuntimeError()
         buff.write(self.raw)
 
     def deserialize(self, str_: bytes) -> None:
-        self.raw = str_
+        self._raw = str_
+
+    @property
+    def raw(self) -> bytes:
+        if self._raw is None:
+            raise RuntimeError()
+        return self._raw
