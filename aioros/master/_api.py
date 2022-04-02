@@ -230,8 +230,8 @@ class MasterApiHandle(ServerHandle):
             1,
             "",
             [
-                (topic, self._master.registry.topic_types[topic])
-                for topic in self._master.registry.publications
+                (topic, topic_type)
+                for topic, topic_type in self._master.registry.topic_types.items()
             ],
         )
 
