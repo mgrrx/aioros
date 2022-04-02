@@ -14,7 +14,7 @@ def resolve_name(name: str, node_name: str, namespace: str) -> str:
         if part and VALID_NAME.match(part) is None:
             raise ValueError(
                 f"Name '{part}' of '{resolved}' is not a valid ROS resource name"
-            )
+            ) from None
     return resolved
 
 
