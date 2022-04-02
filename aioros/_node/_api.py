@@ -213,6 +213,31 @@ class MasterApiClient(BaseApiClient):
             raise XMLRPCError(msg) from None
         return cast(int, value)
 
+    async def get_system_state(
+        self,
+    ) -> Tuple[
+        List[Tuple[str, List[str]]],
+        List[Tuple[str, List[str]]],
+        List[Tuple[str, List[str]]],
+    ]:
+        code, msg, value = await self._proxy.getSystemState(self._node.full_name)
+        if code != 1:
+            raise XMLRPCError(msg) from None
+        return cast(
+            Tuple[
+                List[Tuple[str, List[str]]],
+                List[Tuple[str, List[str]]],
+                List[Tuple[str, List[str]]],
+            ],
+            value,
+        )
+
+    async def get_topic_types(self) -> List[Tuple[str, str]]:
+        code, msg, value = await self._proxy.getTopicTypes(self._node.full_name)
+        if code != 1:
+            raise XMLRPCError(msg) from None
+        return cast(List[Tuple[str, str]], value)
+
 
 class NodeApiClient(BaseApiClient):
     def __init__(self, uri: str, node_name: str) -> None:
