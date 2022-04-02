@@ -1,0 +1,6 @@
+python3-anyio:
+  debian: [python3-anyio]
+python3-h11:
+  debian: [python3-h11]
+python3-httpx:
+  debian: [python3-httpx]
