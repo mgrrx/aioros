@@ -200,6 +200,10 @@ class Node(metaclass=ABCMeta):
         return self.namespace + self.name
 
     @abstractmethod
+    def resolve_name(self, key: str) -> str:
+        ...
+
+    @abstractmethod
     def is_running(self) -> bool:
         ...
 

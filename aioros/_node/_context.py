@@ -41,6 +41,11 @@ def full_node_name() -> str:
 
 
 @require_node
+def resolve_name(key: str) -> str:
+    return node.get().resolve_name(key)
+
+
+@require_node
 def is_running() -> bool:
     return node.get().is_running()
 

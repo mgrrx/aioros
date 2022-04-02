@@ -177,19 +177,19 @@ class Node(abc.Node):
     def master_uri(self) -> str:
         return self._master.uri
 
-    def _resolve_name(self, key: str) -> str:
+    def resolve_name(self, key: str) -> str:
         resolved_name = resolve_name(key, self.name, self.namespace)
         return self._remapping.get(resolved_name, resolved_name)
 
     async def get_param(self, key: str) -> XmlRpcTypes:
-        key = self._resolve_name(key)
+        key = self.resolve_name(key)
         if key in self._param_cache:
             return self._param_cache[key]
 
         return await self._master.get_param(key)
 
     async def get_param_cached(self, key: str) -> XmlRpcTypes:
-        key = self._resolve_name(key)
+        key = self.resolve_name(key)
         if key in self._param_cache:
             return self._param_cache[key]
         # Not yet registered
@@ -206,21 +206,21 @@ class Node(abc.Node):
             return default
 
     async def set_param(self, key: str, value: XmlRpcTypes) -> None:
-        key = self._resolve_name(key)
+        key = self.resolve_name(key)
         await self._master.set_param(key, value)
         self._param_cache.update(key, value)
 
     async def delete_param(self, key: str) -> None:
-        key = self._resolve_name(key)
+        key = self.resolve_name(key)
         await self._master.delete_param(key)
         self._param_cache.delete(key)
 
     async def has_param(self, key: str) -> bool:
-        key = self._resolve_name(key)
+        key = self.resolve_name(key)
         return await self._master.has_param(key)
 
     async def search_param(self, key: str) -> XmlRpcTypes:
-        key = self._resolve_name(key)
+        key = self.resolve_name(key)
         return await self._master.search_param(key)
 
     async def get_param_names(self) -> List[str]:
@@ -232,7 +232,7 @@ class Node(abc.Node):
         service_type: Type[abc.Service[abc.ServiceRequestT, abc.ServiceResponseT]],
         handler: Callable[[abc.ServiceRequestT], Awaitable[abc.ServiceResponseT]],
     ) -> abc.ServiceServer[abc.ServiceRequestT, abc.ServiceResponseT]:
-        service_name = self._resolve_name(service_name)
+        service_name = self.resolve_name(service_name)
         if service_name in self._registry.services:
             raise ValueError(f"Service {service_name} is already registered!")
         server = ServiceServer(
@@ -248,14 +248,14 @@ class Node(abc.Node):
         *,
         persistent: bool = False,
     ) -> abc.ServiceClient[abc.ServiceRequestT, abc.ServiceResponseT]:
-        service_name = self._resolve_name(service_name)
+        service_name = self.resolve_name(service_name)
         cls = PersistentServiceClient if persistent else NonPersistentServiceClient
         return cls(service_name, service_type, self._master, self.full_name)
 
     def create_subscription(
         self, topic_name: str, topic_type: Type[abc.MessageT]
     ) -> abc.Subscription[abc.MessageT]:
-        topic_name = self._resolve_name(topic_name)
+        topic_name = self.resolve_name(topic_name)
         if topic_name not in self._registry.subscriptions:
             self._registry.subscriptions[topic_name] = SubscriptionManager(
                 self._task_group,
@@ -269,7 +269,7 @@ class Node(abc.Node):
     def create_publication(
         self, topic_name: str, topic_type: Type[abc.MessageT], *, latched: bool = False
     ) -> abc.Publication[abc.MessageT]:
-        topic_name = self._resolve_name(topic_name)
+        topic_name = self.resolve_name(topic_name)
         cls = LatchedPublication if latched else Publication
         if topic_name not in self._registry.publications:
             self._registry.publications[topic_name] = cls(
@@ -287,7 +287,7 @@ class Node(abc.Node):
         namespace: str,
         action: Type[abc.Action[abc.GoalT, abc.FeedbackT, abc.ResultT]],
     ) -> abc.ActionClient[abc.GoalT, abc.FeedbackT, abc.ResultT]:
-        namespace = self._resolve_name(namespace)
+        namespace = self.resolve_name(namespace)
         return ActionClient(self, self._task_group, namespace, action)
 
     def get_time(self) -> Time:
