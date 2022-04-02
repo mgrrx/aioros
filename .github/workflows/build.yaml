@@ -15,15 +15,22 @@ jobs:
         with:
           path: catkin_ws/src/aioros
       - run: apt update
+      - name: Install base
+        run: apt install -y catkin-tools g++ python3-rosdep2
       - name: Install dependencies
-        run: apt install -y catkin-tools g++ python3-rosdep2 python3-anyio python3-h11 python3-httpx
+        run: |
+          cd catkin_ws
+          echo "yaml file://$PWD/src/aioros/rosdep.yaml" >> /etc/ros/rosdep/sources.list.d/aioros.list
+          rosdep update
+          rosdep install --from-paths src -y
       - name: Build
         run: |
           cd catkin_ws
-          rosdep update
-          rosdep install --from-paths src -y --skip-keys "python3-anyio python3-h11 python3-httpx"
           catkin init
           catkin config --install
           catkin build
+      - name: Test
+        run: |
+          cd catkin_ws
           . install/setup.sh
           pytest-3 src/aioros/tests
